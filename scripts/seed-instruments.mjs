@@ -161,12 +161,12 @@ const INSTRUMENTS_CATALOG = [
   },
   {
     symbol: 'AXIS-BC',
-    name: 'Axis Bluechip Fund - Direct Plan - Growth',
+    name: 'Axis Large Cap Fund (formerly Bluechip) - Direct Plan - Growth',
     isin: 'INF846K01164',
     assetClass: 'Mutual Funds',
     sector: 'Large Cap',
     exchange: 'AMFI',
-    amfiCode: '120503',
+    amfiCode: '120465',
     marketCapCategory: 'Large Cap',
   },
   {
@@ -181,12 +181,12 @@ const INSTRUMENTS_CATALOG = [
   },
   {
     symbol: 'KOTAK-MC',
-    name: 'Kotak Emerging Equity Fund - Direct Plan - Growth',
+    name: 'Kotak Midcap Fund (formerly Emerging Equity) - Direct Plan - Growth',
     isin: 'INF174K01844',
     assetClass: 'Mutual Funds',
     sector: 'Mid Cap',
     exchange: 'AMFI',
-    amfiCode: '105809',
+    amfiCode: '119775',
     marketCapCategory: 'Mid Cap',
   },
   {
@@ -196,7 +196,7 @@ const INSTRUMENTS_CATALOG = [
     assetClass: 'Mutual Funds',
     sector: 'Large Cap',
     exchange: 'AMFI',
-    amfiCode: '118834',
+    amfiCode: '118825',
     marketCapCategory: 'Large Cap',
   },
   {

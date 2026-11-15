@@ -1,4 +1,5 @@
 import type { MarketQuote } from './types';
+import { fetchNseEodQuotes } from './nse-provider';
 import type { Instrument } from '@/lib/db/schema';
 
 export interface EquityProviderConfig {
@@ -40,125 +41,48 @@ const STATIC_TEST_FIXTURE: Record<
 };
 
 /**
- * Ingests quotes for Equities and ETFs.
- * Supports configurable API provider or verified End-Of-Day closing snapshots.
+ * Ingests end-of-day quotes for Equities and ETFs.
+ * Primary: NSE official full bhavcopy (free, no key). Fallback: Yahoo Finance daily close.
+ * Static fixtures are used only in local development and are always labelled unverified.
  */
 export async function fetchEquityQuotes(
   instruments: Instrument[],
   config: EquityProviderConfig = {}
 ): Promise<{ quotes: MarketQuote[]; errors: string[]; providerUsed: string }> {
-  const apiKey = config.apiKey || process.env.MARKET_DATA_API_KEY;
-  const quotes: MarketQuote[] = [];
-  const errors: string[] = [];
-
-  // Filter for Equities and ETFs only
   const targetEquities = instruments.filter(
     (i) => i.assetClass === 'Indian Stocks' || i.assetClass === 'ETFs'
   );
-
   if (targetEquities.length === 0) {
-    return { quotes, errors, providerUsed: 'NONE' };
+    return { quotes: [], errors: [], providerUsed: 'NONE' };
   }
 
-  // If API key is configured for Twelve Data
-  if (apiKey) {
-    try {
-      for (const inst of targetEquities) {
-        // Twelve Data API for NSE stocks: symbol=RELIANCE:NSE
-        const symbolParam = `${inst.symbol}:${inst.exchange || 'NSE'}`;
-        const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbolParam)}&apikey=${apiKey}`;
+  const live = await fetchNseEodQuotes(targetEquities);
+  const quotes: MarketQuote[] = [...live.quotes];
+  const errors: string[] = [...live.errors];
 
-        const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
-        if (!res.ok) {
-          errors.push(`Provider HTTP error ${res.status} for ${inst.symbol}`);
-          continue;
-        }
-
-        const data = await res.json();
-        if (data.status === 'error' || !data.close) {
-          errors.push(`Provider returned error for ${inst.symbol}: ${data.message || 'Missing price data'}`);
-          continue;
-        }
-
-        const price = parseFloat(data.close);
-        const prevClose = data.previous_close ? parseFloat(data.previous_close) : null;
-        const change = data.change ? parseFloat(data.change) : null;
-        const changePct = data.percent_change ? parseFloat(data.percent_change) : null;
-        const quoteTimestamp = data.timestamp
-          ? new Date(Number(data.timestamp) * 1000)
-          : data.datetime
-            ? new Date(data.datetime)
-            : new Date();
-
-        quotes.push({
-          instrumentId: inst.id,
-          symbol: inst.symbol,
-          price,
-          currency: 'INR',
-          previousClose: prevClose,
-          dayChange: change,
-          dayChangePct: changePct,
-          priceTimestamp: quoteTimestamp,
-          source: 'TWELVE_DATA',
-          priceType: 'EOD',
-          // Twelve Data official exchange coverage for Indian NSE/BSE markets is End-of-Day (EOD).
-          // Never assume real-time or intraday feed based solely on API key presence or undocumented flags.
-          isRealtime: false,
-          metadata: {
-            exchange: inst.exchange || 'NSE',
-            volume: data.volume,
-            feedType: 'EOD',
-            isRealtime: false,
-            tierNote: 'Twelve Data End-of-Day (EOD) exchange close. Live streaming requires dedicated institutional exchange license.',
-          },
-        });
-      }
-
-      return { quotes, errors, providerUsed: 'TWELVE_DATA' };
-    } catch (err) {
-      // Never log the API key or raw URL with credentials
-      errors.push(`Twelve Data provider request failed: ${err instanceof Error ? err.message : 'Network error'}`);
-    }
-  }
-
-  // Fallback: If no API key is provided, use static test fixture for local testing
-  const allowFallback = config.allowEodFallback ?? true;
-
+  const allowFallback = config.allowEodFallback ?? process.env.NODE_ENV !== 'production';
   if (allowFallback) {
-    for (const inst of targetEquities) {
+    for (const inst of live.missing) {
       const snap = STATIC_TEST_FIXTURE[inst.symbol.toUpperCase()];
-      if (snap) {
-        quotes.push({
-          instrumentId: inst.id,
-          symbol: inst.symbol,
-          price: snap.price,
-          currency: 'INR',
-          previousClose: snap.previousClose,
-          dayChange: snap.dayChange,
-          dayChangePct: snap.dayChangePct,
-          priceTimestamp: new Date(snap.dateStr),
-          source: 'STATIC_REFERENCE_FIXTURE',
-          priceType: 'UNVERIFIED_REFERENCE',
-          isRealtime: false,
-          metadata: {
-            exchange: inst.exchange || 'NSE',
-            isOfficialClose: false,
-            isVerified: false,
-            awaitingVerifiedFeed: true,
-            fixtureNote: 'Static test reference fixture. Awaiting live market data API configuration.',
-          },
-        });
-      } else {
-        errors.push(`No market quote available for equity ${inst.symbol}. Awaiting verified provider configuration.`);
-      }
+      if (!snap) continue;
+      quotes.push({
+        instrumentId: inst.id,
+        symbol: inst.symbol,
+        price: snap.price,
+        currency: 'INR',
+        previousClose: snap.previousClose,
+        dayChange: snap.dayChange,
+        dayChangePct: snap.dayChangePct,
+        priceTimestamp: new Date(snap.dateStr),
+        source: 'STATIC_REFERENCE_FIXTURE',
+        priceType: 'UNVERIFIED_REFERENCE',
+        isRealtime: false,
+        metadata: { exchange: inst.exchange || 'NSE', isVerified: false, fixtureNote: 'Offline development fixture.' },
+      });
     }
-
-    return { quotes, errors, providerUsed: 'STATIC_REFERENCE_FIXTURE' };
+  } else if (live.missing.length > 0) {
+    errors.push(`No verified EOD quote for: ${live.missing.map((m) => m.symbol).join(', ')}`);
   }
 
-  return {
-    quotes: [],
-    errors: ['No authorized equity provider configured in MARKET_DATA_API_KEY. Live quotes pending.'],
-    providerUsed: 'PENDING_CONFIG',
-  };
+  return { quotes, errors, providerUsed: live.providerUsed };
 }

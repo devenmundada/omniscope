@@ -3,6 +3,7 @@ import { syncAllMarketPrices } from '@/lib/market-data/sync-service';
 import { logger } from '@/lib/logger';
 
 export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 // In-Memory Mutex Flag & Timeout Tracker:
 // -----------------------------------------------------------------------------------------

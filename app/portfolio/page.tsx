@@ -17,6 +17,9 @@ export const metadata = {
   title: 'Portfolio — OmniScope',
 };
 
+// Allow the in-page "Sync Prices" server action enough time for price + history sync.
+export const maxDuration = 60;
+
 export default async function PortfolioPage() {
   const supabase = await createClient();
   const {

@@ -5,6 +5,7 @@ import { fetchAmfiNavs } from './amfi-provider';
 import { fetchEquityQuotes } from './equity-provider';
 import { fetchGoldAndDebtQuotes } from './gold-debt-provider';
 import type { MarketQuote, SyncResult, StalenessInfo } from './types';
+import { recordHistory, backfillHeldInstrumentHistory } from './history';
 
 /**
  * Evaluates whether a recorded price is considered stale based on asset class and elapsed time.
@@ -68,7 +69,7 @@ export function checkPriceStaleness(
       };
     }
 
-    if (source === 'NSE_EOD' || source === 'BSE_EOD') {
+    if (source === 'NSE_EOD' || source === 'BSE_EOD' || source === 'YAHOO_EOD') {
       if (ageHours > 72) {
         return {
           isStale: true,
@@ -105,7 +106,7 @@ export function checkPriceStaleness(
     return {
       isStale: ageHours > 120,
       ageHours,
-      displayStatus: 'IBJA Gold Benchmark',
+      displayStatus: source === 'GOLD_REFERENCE_ESTIMATE' ? 'Gold reference (COMEX × USD/INR + duty)' : 'IBJA Gold Benchmark',
       badgeTone: 'default',
     };
   }
@@ -240,6 +241,18 @@ export async function syncAllMarketPrices(): Promise<SyncResult> {
         error: `Failed to persist price for ${q.symbol}: ${err instanceof Error ? err.message : String(err)}`,
       });
     }
+  }
+
+  // 5. Persist daily history (verified observations only) and backfill held instruments.
+  try {
+    await recordHistory(quotesToUpsert);
+    const bf = await backfillHeldInstrumentHistory();
+    bf.errors.forEach((e) => errors.push({ identifier: 'HISTORY_BACKFILL', error: e }));
+  } catch (err) {
+    errors.push({
+      identifier: 'PRICE_HISTORY',
+      error: `Price history update failed: ${err instanceof Error ? err.message : String(err)}`,
+    });
   }
 
   return {

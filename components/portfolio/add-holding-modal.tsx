@@ -42,6 +42,7 @@ export function AddHoldingModal({
   const [units, setUnits] = useState('');
   const [avgPrice, setAvgPrice] = useState('');
   const [notes, setNotes] = useState('');
+  const [purchaseDate, setPurchaseDate] = useState('');
 
   // New account creation inline toggle
   const [creatingAccount, setCreatingAccount] = useState(false);
@@ -116,6 +117,7 @@ export function AddHoldingModal({
     formData.set('units', String(unitsNum));
     formData.set('averageAcquisitionCost', String(avgPriceNum));
     if (notes) formData.set('notes', notes);
+    if (purchaseDate) formData.set('purchaseDate', purchaseDate);
 
     startTransition(async () => {
       const res = await addHoldingAction(null, formData);
@@ -128,6 +130,7 @@ export function AddHoldingModal({
         setUnits('');
         setAvgPrice('');
         setNotes('');
+        setPurchaseDate('');
         router.refresh();
       }
     });
@@ -312,6 +315,22 @@ export function AddHoldingModal({
               <span className="font-semibold text-foreground tnum">{formatINR(totalCost)}</span>
             </div>
           )}
+
+          {/* Optional purchase date (enables XIRR) */}
+          <div>
+            <label htmlFor="purchaseDate" className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1">
+              First Purchase Date (Optional)
+            </label>
+            <Input
+              id="purchaseDate"
+              type="date"
+              max={new Date().toISOString().slice(0, 10)}
+              value={purchaseDate}
+              onChange={(e) => setPurchaseDate(e.target.value)}
+              className="text-xs"
+            />
+            <p className="mt-1 text-[10px] text-muted-foreground">Used to compute your annualised return (XIRR).</p>
+          </div>
 
           {/* Optional Notes */}
           <div>

@@ -261,8 +261,8 @@ export function calculateXRayAnalytics(
 
       const src = h.priceSource?.toUpperCase() || '';
       if (src === 'AMFI') amfiNavCount++;
-      else if (src === 'TWELVE_DATA' || src === 'NSE_EOD' || src === 'BSE_EOD') exchangeEodCount++;
-      else if (src === 'IBJA_GOLD_BENCHMARK') goldBenchmarkCount++;
+      else if (src === 'TWELVE_DATA' || src === 'NSE_EOD' || src === 'BSE_EOD' || src === 'YAHOO_EOD') exchangeEodCount++;
+      else if (src === 'IBJA_GOLD_BENCHMARK' || src === 'GOLD_REFERENCE_ESTIMATE') goldBenchmarkCount++;
       else if (src === 'BANK_ACCRUAL') bankAccrualCount++;
     } else {
       unpricedCount++;

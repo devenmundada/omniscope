@@ -7,3 +7,5 @@ export * from './transactions';
 export * from './market-prices';
 export * from './goals';
 export * from './ai-conversations';
+export * from './price-history';
+export * from './ai-insight-cache';

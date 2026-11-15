@@ -189,7 +189,7 @@ export function RealXRayView({ analytics }: RealXRayViewProps) {
             )}
             {dataQuality.feedBreakdown.goldBenchmarkCount > 0 && (
               <span className="inline-flex items-center gap-1 rounded bg-secondary px-2 py-0.5 text-[11px]">
-                IBJA Gold ({dataQuality.feedBreakdown.goldBenchmarkCount})
+                Gold reference ({dataQuality.feedBreakdown.goldBenchmarkCount})
               </span>
             )}
             {dataQuality.feedBreakdown.bankAccrualCount > 0 && (

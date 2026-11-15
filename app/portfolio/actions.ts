@@ -180,6 +180,15 @@ export async function addHoldingAction(
     const units = parseFloat(formData.get('units') as string);
     const averageAcquisitionCost = parseFloat(formData.get('averageAcquisitionCost') as string);
     const notes = (formData.get('notes') as string)?.trim() || undefined;
+    const purchaseDateRaw = (formData.get('purchaseDate') as string)?.trim();
+    let purchaseDate: Date | null = null;
+    if (purchaseDateRaw) {
+      const t = Date.parse(purchaseDateRaw);
+      if (Number.isNaN(t) || t > Date.now()) {
+        return { error: 'Purchase date must be a valid date that is not in the future.' };
+      }
+      purchaseDate = new Date(t);
+    }
 
     if (!accountId) {
       return { error: 'Please select an account.' };
@@ -203,6 +212,7 @@ export async function addHoldingAction(
       units,
       averageAcquisitionCost,
       notes,
+      purchaseDate,
     });
 
     revalidatePath('/portfolio');

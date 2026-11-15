@@ -34,13 +34,13 @@ interface CsvImportModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const SAMPLE_CSV_TEMPLATE = `account_name,symbol,isin,quantity,average_buy_price,notes
-Zerodha Demat,RELIANCE,INE002A01018,50,2450.50,Long-term core
-Zerodha Demat,HDFCBANK,INE040A01034,40,1520.00,Banking allocation
-Groww MF,PPFAS-FC,INF879O01018,450.25,58.20,Monthly SIP
-Groww MF,UTI-N50,INF789F01AU8,200.00,118.40,Index allocation
-Zerodha Demat,NIFTYBEES,INF204KB14I2,100,218.00,ETF allocation
-Zerodha Demat,SGB23,IN0020230085,25,5920.00,Sovereign Gold Bond`;
+const SAMPLE_CSV_TEMPLATE = `account_name,symbol,isin,quantity,average_buy_price,purchase_date,notes
+Zerodha Demat,RELIANCE,INE002A01018,50,1180.50,2023-06-15,Long-term core
+Zerodha Demat,HDFCBANK,INE040A01034,40,1520.00,2023-09-01,Banking allocation
+Groww MF,PPFAS-FC,INF879O01018,450.25,58.20,2023-04-10,Monthly SIP
+Groww MF,UTI-N50,INF789F01AU8,200.00,118.40,2023-04-10,Index allocation
+Zerodha Demat,NIFTYBEES,INF204KB14I2,100,218.00,2024-01-05,ETF allocation
+Zerodha Demat,SGB23,IN0020230085,25,5920.00,2023-09-20,Sovereign Gold Bond`;
 
 export function CsvImportModal({ open, onOpenChange }: CsvImportModalProps) {
   const router = useRouter();
@@ -189,7 +189,7 @@ export function CsvImportModal({ open, onOpenChange }: CsvImportModalProps) {
                 <UploadCloud className="size-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-sm font-medium text-foreground">Click to select CSV file</p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supported format: <code>account_name, symbol, isin, quantity, average_buy_price</code>
+                  Supported format: <code>account_name, symbol, isin, quantity, average_buy_price</code> (optional: <code>purchase_date</code>, <code>notes</code>)
                 </p>
                 {fileName && (
                   <p className="text-xs font-semibold text-primary mt-2">

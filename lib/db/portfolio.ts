@@ -30,11 +30,14 @@ export interface UserHoldingView {
   priceSource: string | null;
   priceType: string | null;
   dayChangePct: number | null;
+  /** Unverified reference price (catalogue fixture). Shown for context only; never used for valuation. */
+  referencePrice: number | null;
   isPriceStale: boolean;
   priceStatusLabel: string;
   marketCapCategory: string | null;
   metadata: Record<string, unknown> | null;
   notes: string | null;
+  firstPurchasedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -60,6 +63,8 @@ export interface AddHoldingInput {
   units: number;
   averageAcquisitionCost: number;
   notes?: string;
+  /** Optional first purchase date (used for XIRR). */
+  purchaseDate?: Date | null;
 }
 
 export interface CreateAccountInput {
@@ -198,10 +203,24 @@ export async function getUserHoldings(userId: string): Promise<UserHoldingView[]
     let priceSource: string | null = null;
     let priceType: string | null = null;
     let dayChangePct: number | null = null;
+    let referencePrice: number | null = null;
     let isPriceStale = false;
     let priceStatusLabel = 'Awaiting Market Feed';
 
-    if (marketPrice && marketPrice.price != null) {
+    const isUnverifiedReference =
+      marketPrice != null &&
+      (marketPrice.priceType === 'UNVERIFIED_REFERENCE' ||
+        ['STATIC_REFERENCE_FIXTURE', 'STATIC_TEST_FIXTURE'].includes((marketPrice.source || '').toUpperCase()));
+
+    if (marketPrice && marketPrice.price != null && isUnverifiedReference) {
+      // Single valuation policy shared by Portfolio, X-Ray, Health and AI features:
+      // unverified catalogue fixtures are displayed for context but never valued.
+      referencePrice = Number(marketPrice.price);
+      priceTimestamp = marketPrice.priceTimestamp;
+      priceSource = marketPrice.source;
+      priceType = marketPrice.priceType;
+      priceStatusLabel = 'Awaiting Verified Feed';
+    } else if (marketPrice && marketPrice.price != null) {
       currentPrice = Number(marketPrice.price);
       currentValue = units * currentPrice;
       unrealizedGain = currentValue - investedAmount;
@@ -244,11 +263,13 @@ export async function getUserHoldings(userId: string): Promise<UserHoldingView[]
       priceSource,
       priceType,
       dayChangePct,
+      referencePrice,
       isPriceStale,
       priceStatusLabel,
       marketCapCategory: instrument.marketCapCategory,
       metadata: (instrument.metadata as Record<string, unknown>) || null,
       notes: holding.notes,
+      firstPurchasedAt: holding.firstPurchasedAt,
       createdAt: holding.createdAt,
       updatedAt: holding.updatedAt,
     };
@@ -382,6 +403,7 @@ export async function addOrUpdateHolding(
         units: unitsStr,
         averageAcquisitionCost: avgCostStr,
         notes: input.notes !== undefined ? input.notes : existing.notes,
+        firstPurchasedAt: input.purchaseDate ?? existing.firstPurchasedAt,
         updatedAt: new Date(),
       })
       .where(and(eq(holdings.id, existing.id), eq(holdings.userId, userId)))
@@ -397,6 +419,7 @@ export async function addOrUpdateHolding(
         units: unitsStr,
         averageAcquisitionCost: avgCostStr,
         notes: input.notes?.trim() || null,
+        firstPurchasedAt: input.purchaseDate ?? null,
       })
       .returning();
     holdingId = created.id;
@@ -434,6 +457,7 @@ export interface CsvHoldingRow {
   quantity: number;
   average_buy_price: number;
   notes?: string;
+  purchase_date?: string;
 }
 
 export interface CsvImportValidationResult {
@@ -492,6 +516,17 @@ export async function validateCsvRows(
 
     const accountType = (r.account_type || r.type || 'demat').trim().toLowerCase();
 
+    const dateRaw = (r.purchase_date || r.buy_date || r.date || '').trim();
+    let purchase_date: string | undefined;
+    if (dateRaw) {
+      const t = Date.parse(dateRaw);
+      if (Number.isNaN(t) || t > Date.now()) {
+        errors.push({ rowNumber, message: `Invalid purchase date "${dateRaw}". Use YYYY-MM-DD and a date not in the future.` });
+        continue;
+      }
+      purchase_date = new Date(t).toISOString().slice(0, 10);
+    }
+
     validRows.push({
       account_name: accountName,
       account_type: accountType,
@@ -500,6 +535,7 @@ export async function validateCsvRows(
       quantity,
       average_buy_price,
       notes: r.notes?.trim() || undefined,
+      purchase_date,
       instrument,
       accountName,
       accountType,
@@ -577,6 +613,7 @@ export async function executeTransactionalCsvImport(
             units: unitsStr,
             averageAcquisitionCost: avgCostStr,
             notes: row.notes || existing.notes,
+            firstPurchasedAt: row.purchase_date ? new Date(row.purchase_date) : existing.firstPurchasedAt,
             updatedAt: new Date(),
           })
           .where(and(eq(holdings.id, existing.id), eq(holdings.userId, userId)));
@@ -588,6 +625,7 @@ export async function executeTransactionalCsvImport(
           units: unitsStr,
           averageAcquisitionCost: avgCostStr,
           notes: row.notes || null,
+          firstPurchasedAt: row.purchase_date ? new Date(row.purchase_date) : null,
         });
       }
 
