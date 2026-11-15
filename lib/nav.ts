@@ -28,7 +28,7 @@ export const navItems: NavItem[] = [
   { href: '/health', label: 'Financial Health', question: 'How healthy am I financially?', icon: HeartPulse },
   { href: '/goals', label: 'Goals', question: 'Am I getting closer to my dreams?', icon: Target },
   { href: '/learn', label: 'Learning', question: 'What should I understand next?', icon: GraduationCap },
-  { href: '/mentor', label: 'AI Mentor', question: 'What should I do now?', icon: Sparkles },
+  { href: '/mentor', label: 'AI Copilot', question: 'What should I do now?', icon: Sparkles },
   { href: '/dna', label: 'Wealth DNA', question: 'Who am I as an investor?', icon: Dna },
   { href: '/market', label: 'Market Intelligence', question: 'Why does this news matter to me?', icon: TrendingUp },
   { href: '/journey', label: 'Wealth Journey', question: 'How have I grown?', icon: Route },
