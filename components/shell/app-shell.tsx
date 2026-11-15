@@ -3,10 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState } from 'react'
-import { Menu, Sparkles, X, Search, ShieldCheck, Lock } from 'lucide-react'
+import { Menu, Sparkles, X, Search } from 'lucide-react'
 import { navItems } from '@/lib/nav'
 import { cn } from '@/lib/utils'
 import { CommandPalette } from './command-palette'
+import { UserNav } from './user-nav'
 
 function Wordmark() {
   return (
@@ -100,25 +101,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </button>
         </div>
 
-        <div className="border-t border-sidebar-border p-3">
-          <div className="flex items-center gap-3 rounded-lg px-2 py-2">
-            <span className="flex size-9 items-center justify-center rounded-full bg-accent text-sm font-medium text-accent-foreground">
-              RS
-            </span>
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium text-foreground">Rohan Sharma</p>
-              <p className="truncate text-xs text-muted-foreground">Investor since 2019</p>
-            </div>
-          </div>
-          <div className="mt-2 flex flex-col gap-1 px-2">
-            <Link href="/reputation" className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center gap-2">
-              <ShieldCheck className="size-3.5" /> Financial Identity
-            </Link>
-            <Link href="/trust" className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center gap-2">
-              <Lock className="size-3.5" /> Trust Center
-            </Link>
-          </div>
-        </div>
+        <UserNav />
       </aside>
 
       {/* Mobile top bar */}
@@ -166,6 +149,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 />
               ))}
             </nav>
+            <UserNav />
           </div>
         </div>
       )}

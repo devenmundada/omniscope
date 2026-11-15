@@ -3,9 +3,8 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Command } from 'cmdk'
-import { Search, Compass, BarChart, Target, Sparkles, BookOpen, ShieldCheck, PieChart } from 'lucide-react'
+import { Search, Compass, BarChart, Target, Sparkles, BookOpen, ShieldCheck, PieChart, LogIn, Lock, UserCog } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 
 export function CommandPalette() {
   const [open, setOpen] = React.useState(false)
@@ -98,6 +97,32 @@ export function CommandPalette() {
               >
                 <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
                 <span>Financial Reputation</span>
+              </Command.Item>
+            </Command.Group>
+
+            <Command.Separator className="h-px w-full bg-border" />
+
+            <Command.Group heading="Account & Security" className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/profile'))}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+              >
+                <UserCog className="mr-2 h-4 w-4 text-primary" />
+                <span>Financial Profile & Settings</span>
+              </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/auth/login'))}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+              >
+                <LogIn className="mr-2 h-4 w-4 text-primary" />
+                <span>Sign In / Switch Account</span>
+              </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/trust'))}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+              >
+                <Lock className="mr-2 h-4 w-4" />
+                <span>Trust & Security Center</span>
               </Command.Item>
             </Command.Group>
           </Command.List>

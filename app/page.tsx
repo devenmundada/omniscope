@@ -32,7 +32,7 @@ export default function DashboardPage() {
     <StaggerContainer>
       <StaggerItem className="mb-10">
         <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-6">
-          Today's Financial Story
+          Today&apos;s Financial Story
         </h1>
         <div className="grid gap-6 md:grid-cols-2">
           <div className="space-y-4">

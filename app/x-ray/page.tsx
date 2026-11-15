@@ -1,27 +1,83 @@
-import { Card } from '@/components/ui/card'
-import { InsightBlock, PageHeader } from '@/components/omni/primitives'
-import { LookThroughChart } from '@/components/xray/look-through-chart'
-import { OverlapList } from '@/components/xray/overlap-list'
-import { MarketCapBar } from '@/components/xray/market-cap-bar'
-import { DependencyGraph } from '@/components/xray/dependency-graph'
-import { RiskRadarChart, CorrelationMatrix, AllocationTreemap, GeographicExposure, RebalancingSuggestion } from '@/components/xray/xray-visualizations'
-import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition'
-import { MentorNotes } from '@/components/omni/mentor-notes'
+import { Card } from '@/components/ui/card';
+import { InsightBlock, PageHeader } from '@/components/omni/primitives';
+import { LookThroughChart } from '@/components/xray/look-through-chart';
+import { OverlapList } from '@/components/xray/overlap-list';
+import { MarketCapBar } from '@/components/xray/market-cap-bar';
+import { DependencyGraph } from '@/components/xray/dependency-graph';
+import {
+  RiskRadarChart,
+  CorrelationMatrix,
+  AllocationTreemap,
+  GeographicExposure,
+  RebalancingSuggestion,
+} from '@/components/xray/xray-visualizations';
+import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition';
+import { MentorNotes } from '@/components/omni/mentor-notes';
+import { DemoPreviewBanner } from '@/components/omni/demo-preview-banner';
+import { RealXRayView } from '@/components/xray/real-xray-view';
+import { createClient } from '@/lib/supabase/server';
+import { getUserHoldings } from '@/lib/db/portfolio';
+import { calculateXRayAnalytics } from '@/lib/db/xray';
 import {
   fundOverlaps,
   lookThrough,
   marketCapSplit,
   sectorExposure,
   xrayInsights,
-} from '@/lib/data'
-import { ArrowRight, LockKeyhole, Search, SlidersHorizontal, Map, Layers } from 'lucide-react'
+} from '@/lib/data';
 
 export const metadata = {
-  title: 'Portfolio X-Ray 3.0 — OmniScope',
-}
+  title: 'Portfolio X-Ray — OmniScope',
+};
 
-export default function XRayPage() {
-  const sectors = sectorExposure()
+export default async function XRayPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // If user is authenticated, derive analytics strictly from their real portfolio
+  if (user) {
+    const holdings = await getUserHoldings(user.id);
+    const analytics = calculateXRayAnalytics(holdings, user.id);
+
+    let mentorContent =
+      'Welcome to your Portfolio X-Ray. Connect or import your holdings on the Portfolio page to analyze your verified asset allocation and position concentration.';
+
+    if (analytics.hasHoldings) {
+      const topHoldingName = analytics.concentration.topHoldings[0]?.symbol || 'Core position';
+      const topWeight = analytics.concentration.top1WeightPct.toFixed(1);
+      const top5Weight = analytics.concentration.top5WeightPct.toFixed(1);
+
+      mentorContent = `Your verified portfolio spans ${analytics.assetClassAllocations.length} distinct asset classes across ${analytics.dataQuality.totalHoldingsCount} holdings. Your Herfindahl-Hirschman concentration score is ${analytics.concentration.hhi} (${analytics.concentration.hhiClassification}), with ${topHoldingName} representing ${topWeight}% and your top 5 holdings making up ${top5Weight}% of verified assets.`;
+    }
+
+    return (
+      <StaggerContainer>
+        <StaggerItem>
+          <PageHeader
+            eyebrow="Portfolio X-Ray"
+            title="What are you actually exposed to?"
+            question="Analyze asset class distribution, sector weights, market cap balance, and single-asset concentration across your verified holdings."
+          />
+        </StaggerItem>
+
+        <StaggerItem className="mb-6">
+          <MentorNotes
+            title="AI Perspective"
+            content={mentorContent}
+            confidence={analytics.hasHoldings ? 'High' : 'Medium'}
+            actionable
+          />
+        </StaggerItem>
+
+        <RealXRayView analytics={analytics} />
+      </StaggerContainer>
+    );
+  }
+
+  // Fallback for unauthenticated visitors: Reference Dataset Preview
+  const sectors = sectorExposure();
 
   return (
     <StaggerContainer>
@@ -33,7 +89,11 @@ export default function XRayPage() {
         />
       </StaggerItem>
 
-      {/* The headline insights */}
+      <StaggerItem>
+        <DemoPreviewBanner screenName="Portfolio X-Ray" />
+      </StaggerItem>
+
+      {/* Headline Insights */}
       <StaggerItem>
         <div className="grid gap-3 lg:grid-cols-3">
           {xrayInsights.map((i) => (
@@ -47,9 +107,7 @@ export default function XRayPage() {
         <Card className="p-6">
           <div className="mb-6 flex items-baseline justify-between">
             <div>
-              <h2 className="text-base font-semibold text-foreground">
-                Exposure Flow
-              </h2>
+              <h2 className="text-base font-semibold text-foreground">Exposure Flow</h2>
               <p className="mt-1 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                 Follow your money. See exactly how your mutual funds and direct investments map to individual companies.
               </p>
@@ -99,7 +157,7 @@ export default function XRayPage() {
               <MarketCapBar data={marketCapSplit} />
             </Card>
           </StaggerItem>
-          
+
           {/* Sector exposure */}
           <StaggerItem>
             <Card className="p-6">
@@ -166,7 +224,6 @@ export default function XRayPage() {
         </div>
         <RebalancingSuggestion />
       </StaggerItem>
-
     </StaggerContainer>
-  )
+  );
 }

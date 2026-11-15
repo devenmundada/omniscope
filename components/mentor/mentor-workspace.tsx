@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { motion } from 'framer-motion'
 import { ArrowUp, Sparkles, Send } from 'lucide-react'
@@ -19,9 +20,21 @@ const starterPrompts = [
 ]
 
 export function MentorWorkspace() {
-  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat({
-    api: '/api/chat',
-  })
+  const [input, setInput] = useState('')
+  const { messages, sendMessage, status } = useChat()
+  const isLoading = status === 'submitted' || status === 'streaming'
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+  }
+
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
+    if (!input?.trim() || isLoading) return
+    const text = input
+    setInput('')
+    await sendMessage({ text })
+  }
 
   // We can inject custom components when the AI returns specific tools
   // Since we are mocking, we can also just parse specific AI responses to render UI

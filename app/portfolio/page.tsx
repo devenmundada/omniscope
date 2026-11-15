@@ -1,18 +1,72 @@
-import { Card } from '@/components/ui/card'
-import { Delta, PageHeader, StatValue, InsightBlock } from '@/components/omni/primitives'
-import { HoldingsTable } from '@/components/portfolio/holdings-table'
-import { computeHoldings, portfolioSummary } from '@/lib/data'
-import { formatINRCompact } from '@/lib/format'
-import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition'
-import { MentorNotes } from '@/components/omni/mentor-notes'
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import { PageHeader } from '@/components/omni/primitives';
+import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition';
+import { MentorNotes } from '@/components/omni/mentor-notes';
+import { RealHoldingsView } from '@/components/portfolio/real-holdings-view';
+import {
+  getUserHoldings,
+  getUserAccounts,
+  getInstrumentsCatalog,
+  calculatePortfolioSummary,
+  ensureDefaultAccount,
+} from '@/lib/db/portfolio';
+import { formatINRCompact } from '@/lib/format';
 
 export const metadata = {
   title: 'Portfolio — OmniScope',
-}
+};
 
-export default function PortfolioPage() {
-  const holdings = computeHoldings()
-  const summary = portfolioSummary()
+export default async function PortfolioPage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect('/auth/login?next=/portfolio');
+  }
+
+  // Ensure user has at least one account configured
+  await ensureDefaultAccount(user.id);
+
+  // Fetch real user data directly from Supabase PostgreSQL via Drizzle
+  const [holdings, accounts, instruments] = await Promise.all([
+    getUserHoldings(user.id),
+    getUserAccounts(user.id),
+    getInstrumentsCatalog(),
+  ]);
+
+  const summary = calculatePortfolioSummary(holdings);
+
+  let mentorContent =
+    'Welcome to your OmniScope portfolio. Your database partition is ready. Add your holdings manually or import a CSV statement to begin tracking your true cost basis and asset allocation.';
+
+  if (holdings.length > 0) {
+    if (summary.hasAnyPricedHoldings && summary.totalCurrentValue != null) {
+      const gainText =
+        summary.totalUnrealizedGain != null
+          ? `${summary.totalUnrealizedGain >= 0 ? '+' : ''}${formatINRCompact(
+              summary.totalUnrealizedGain
+            )} (${summary.totalUnrealizedGain >= 0 ? '+' : ''}${(
+              summary.totalUnrealizedGainPct ?? 0
+            ).toFixed(2)}%)`
+          : '';
+      mentorContent = `You have ${holdings.length} active positions totaling ${formatINRCompact(
+        summary.totalInvested
+      )} in cost basis, currently valued at ${formatINRCompact(
+        summary.totalCurrentValue
+      )} (${gainText} unrealized P&L) across ${accounts.length} ${
+        accounts.length === 1 ? 'account' : 'accounts'
+      }. Valuations are verified against official AMFI NAVs and closing feeds.`;
+    } else {
+      mentorContent = `You have ${holdings.length} active positions totaling ${formatINRCompact(
+        summary.totalInvested
+      )} in verified cost basis across ${accounts.length} ${
+        accounts.length === 1 ? 'account' : 'accounts'
+      }. Synchronize market data feeds to view verified daily valuations and returns.`;
+    }
+  }
 
   return (
     <StaggerContainer>
@@ -20,51 +74,27 @@ export default function PortfolioPage() {
         <PageHeader
           eyebrow="Portfolio"
           title="What do you own?"
-          question="Every holding across stocks, funds, gold and more — in one honest, uncluttered list."
+          question="Every holding across stocks, funds, gold and fixed income — in one honest, verified list."
         />
       </StaggerItem>
-
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StaggerItem>
-          <Card className="p-6">
-            <p className="text-sm text-muted-foreground">Current value</p>
-            <StatValue value={formatINRCompact(summary.current)} className="mt-2 block text-3xl" />
-            <Delta value={summary.dayChangePct} size="sm" className="mt-2" />
-          </Card>
-        </StaggerItem>
-        <StaggerItem>
-          <Card className="p-6">
-            <p className="text-sm text-muted-foreground">Total invested</p>
-            <StatValue value={formatINRCompact(summary.invested)} className="mt-2 block text-3xl" />
-            <p className="mt-2 text-xs text-muted-foreground">Across {holdings.length} holdings</p>
-          </Card>
-        </StaggerItem>
-        <StaggerItem>
-          <Card className="p-6">
-            <p className="text-sm text-muted-foreground">Total gain</p>
-            <StatValue
-              value={formatINRCompact(summary.gain)}
-              className="mt-2 block text-3xl text-success"
-            />
-            <Delta value={summary.gainPct} size="sm" className="mt-2" />
-          </Card>
-        </StaggerItem>
-      </div>
 
       <StaggerItem>
         <MentorNotes
           title="AI Perspective"
-          content="Your portfolio is highly efficient. The 18.9% total gain is primarily driven by your consistent SIPs in large-cap funds. By avoiding the temptation to over-trade direct stocks, you've allowed compounding to work undisturbed. Continue holding steady."
-          confidence="High"
+          content={mentorContent}
+          confidence={holdings.length > 0 ? 'High' : 'Medium'}
           actionable
         />
       </StaggerItem>
 
       <StaggerItem>
-        <Card className="mt-6 p-4 sm:p-6 mb-6">
-          <HoldingsTable holdings={holdings} />
-        </Card>
+        <RealHoldingsView
+          initialHoldings={holdings}
+          initialAccounts={accounts}
+          instruments={instruments}
+          initialSummary={summary}
+        />
       </StaggerItem>
     </StaggerContainer>
-  )
+  );
 }

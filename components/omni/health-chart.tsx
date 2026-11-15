@@ -14,7 +14,15 @@ import { Card } from '@/components/ui/card'
 import { healthEvolutionHistory, type HealthEvolutionData } from '@/lib/data'
 import { cn } from '@/lib/utils'
 
-export function HealthEvolutionChart({ onSelectPoint, activeMonth }: { onSelectPoint: (data: HealthEvolutionData) => void, activeMonth: string }) {
+export function HealthEvolutionChart({
+  onSelectPoint,
+  activeMonth,
+  data = healthEvolutionHistory,
+}: {
+  onSelectPoint: (data: HealthEvolutionData) => void;
+  activeMonth: string;
+  data?: HealthEvolutionData[];
+}) {
   return (
     <Card className="p-6 h-[300px] flex flex-col">
       <div className="flex justify-between items-center mb-6">
@@ -27,7 +35,7 @@ export function HealthEvolutionChart({ onSelectPoint, activeMonth }: { onSelectP
       <div className="flex-1 w-full min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
-            data={healthEvolutionHistory} 
+            data={data} 
             margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             onClick={(e: any) => {
               if (e && e.activePayload) {
