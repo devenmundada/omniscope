@@ -35,11 +35,14 @@ import { GoalModal } from './goal-modal';
 import { deleteGoalAction } from '@/app/goals/actions';
 import type { GoalEntity } from '@/lib/db/schema/goals';
 import type { GoalProjectionDetails } from '@/lib/math/financial-projections';
+import type { GoalSimulation } from '@/lib/db/goal-simulation';
+import { MonteCarloPanel, ProbabilityBadge } from './monte-carlo-panel';
 
 interface RealGoalsViewProps {
   goals: Array<{
     goal: GoalEntity;
     details: GoalProjectionDetails;
+    simulation?: GoalSimulation | null;
   }>;
   totalTargetAmount: number;
   totalCurrentAllocated: number;
@@ -158,11 +161,12 @@ export function RealGoalsView({
       {/* Goals List */}
       {goals.length > 0 && (
         <div className="mt-8 grid gap-6 md:grid-cols-2">
-          {goals.map(({ goal, details }) => (
+          {goals.map(({ goal, details, simulation }) => (
             <StaggerItem key={goal.id}>
               <RealGoalCard
                 goal={goal}
                 details={details}
+                simulation={simulation ?? null}
                 onEdit={() => handleOpenEdit(goal)}
               />
             </StaggerItem>
@@ -220,10 +224,12 @@ export function RealGoalsView({
 function RealGoalCard({
   goal,
   details,
+  simulation,
   onEdit,
 }: {
   goal: GoalEntity;
   details: GoalProjectionDetails;
+  simulation: GoalSimulation | null;
   onEdit: () => void;
 }) {
   const router = useRouter();
@@ -312,6 +318,7 @@ function RealGoalCard({
             >
               {statusBadgeLabel}
             </span>
+            {simulation && <ProbabilityBadge probability={simulation.nominal.probabilityOfSuccess} />}
 
             <button
               onClick={(e) => {
@@ -469,6 +476,10 @@ function RealGoalCard({
                   </p>
                 </div>
               </div>
+
+              {simulation && (
+                <MonteCarloPanel simulation={simulation} target={details.targetAmount} deadline={details.deadlineDate} />
+              )}
 
               {/* Multi-Scenario Projections */}
               <div className="mb-6">

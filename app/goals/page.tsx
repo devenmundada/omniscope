@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server';
 import { getPersonalFinancialSummary } from '@/lib/db/financial-summary';
 import { RealGoalsView } from '@/components/goals/real-goals-view';
 import { DemoGoalsView } from '@/components/goals/demo-goals-view';
+import { getPortfolioPerformance } from '@/lib/db/performance';
+import { portfolioAssumptions, simulateGoalFromDetails } from '@/lib/db/goal-simulation';
 
 export const metadata = {
   title: 'Goals — OmniScope',
@@ -16,10 +18,16 @@ export default async function GoalsPage() {
   // If user is authenticated, render user's real persisted goals and mathematical projections
   if (user) {
     const summary = await getPersonalFinancialSummary(user.id);
+    const performance = await getPortfolioPerformance(summary.holdings).catch(() => null);
+    const assumptions = portfolioAssumptions(summary.holdings, performance?.assetClassStats ?? []);
+    const goalsWithSimulation = summary.goalsSummary.projections.map((p, i) => ({
+      ...p,
+      simulation: simulateGoalFromDetails(p.details, assumptions, i),
+    }));
 
     return (
       <RealGoalsView
-        goals={summary.goalsSummary.projections}
+        goals={goalsWithSimulation}
         totalTargetAmount={summary.goalsSummary.totalTargetAmount}
         totalCurrentAllocated={summary.goalsSummary.totalCurrentAllocated}
         totalMonthlyCommitment={summary.goalsSummary.totalMonthlyCommitment}
