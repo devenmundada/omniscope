@@ -37,8 +37,8 @@ interface CsvImportModalProps {
 const SAMPLE_CSV_TEMPLATE = `account_name,symbol,isin,quantity,average_buy_price,purchase_date,notes
 Zerodha Demat,RELIANCE,INE002A01018,50,1180.50,2023-06-15,Long-term core
 Zerodha Demat,HDFCBANK,INE040A01034,40,1520.00,2023-09-01,Banking allocation
-Groww MF,PPFAS-FC,INF879O01018,450.25,58.20,2023-04-10,Monthly SIP
-Groww MF,UTI-N50,INF789F01AU8,200.00,118.40,2023-04-10,Index allocation
+Groww MF,PPFAS-FC,INF879O01027,450.25,58.20,2023-04-10,Monthly SIP
+Groww MF,UTI-N50,INF789F01XA0,200.00,118.40,2023-04-10,Index allocation
 Zerodha Demat,NIFTYBEES,INF204KB14I2,100,218.00,2024-01-05,ETF allocation
 Zerodha Demat,SGB23,IN0020230085,25,5920.00,2023-09-20,Sovereign Gold Bond`;
 

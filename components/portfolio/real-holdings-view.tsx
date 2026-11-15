@@ -9,6 +9,7 @@ import { StatValue } from '@/components/omni/primitives';
 import { StaggerItem } from '@/components/omni/page-transition';
 import { AddHoldingModal } from './add-holding-modal';
 import { CsvImportModal } from './csv-import-modal';
+import { StatementReaderModal } from './statement-reader-modal';
 import { deleteHoldingAction, syncMarketPricesAction } from '@/app/portfolio/actions';
 import type { UserHoldingView, PortfolioSummaryStats } from '@/lib/db/portfolio';
 import type { Account, Instrument } from '@/lib/db/schema';
@@ -60,6 +61,7 @@ export function RealHoldingsView({
   const [expanded, setExpanded] = useState<string | null>(null);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [isCsvOpen, setIsCsvOpen] = useState(false);
+  const [isAiImportOpen, setIsAiImportOpen] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncFeedback, setSyncFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -316,6 +318,15 @@ export function RealHoldingsView({
           </Button>
           <Button
             type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAiImportOpen(true)}
+            className="text-xs h-8 gap-1.5 flex-1 sm:flex-initial"
+          >
+            <Sparkles className="size-3.5" /> AI Import Statement
+          </Button>
+          <Button
+            type="button"
             size="sm"
             onClick={() => setIsAddOpen(true)}
             className="text-xs h-8 gap-1.5 flex-1 sm:flex-initial shadow-sm"
@@ -352,6 +363,14 @@ export function RealHoldingsView({
               className="w-full sm:w-auto gap-2"
             >
               <FileSpreadsheet className="size-4" /> Import from CSV
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setIsAiImportOpen(true)}
+              className="w-full sm:w-auto gap-2"
+            >
+              <Sparkles className="size-4" /> AI Import Statement
             </Button>
           </div>
 
@@ -687,6 +706,7 @@ export function RealHoldingsView({
         instruments={instruments}
       />
       <CsvImportModal open={isCsvOpen} onOpenChange={setIsCsvOpen} />
+      <StatementReaderModal open={isAiImportOpen} onOpenChange={setIsAiImportOpen} />
     </div>
   );
 }

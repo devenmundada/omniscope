@@ -152,7 +152,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'PPFAS-FC',
     name: 'Parag Parikh Flexi Cap Fund - Direct Plan - Growth',
-    isin: 'INF879O01018',
+    isin: 'INF879O01027',
     assetClass: 'Mutual Funds',
     sector: 'Flexi Cap',
     exchange: 'AMFI',
@@ -162,7 +162,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'AXIS-BC',
     name: 'Axis Large Cap Fund (formerly Bluechip) - Direct Plan - Growth',
-    isin: 'INF846K01164',
+    isin: 'INF846K01DP8',
     assetClass: 'Mutual Funds',
     sector: 'Large Cap',
     exchange: 'AMFI',
@@ -172,7 +172,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'UTI-N50',
     name: 'UTI Nifty 50 Index Fund - Direct Plan - Growth',
-    isin: 'INF789F01AU8',
+    isin: 'INF789F01XA0',
     assetClass: 'Mutual Funds',
     sector: 'Index',
     exchange: 'AMFI',
@@ -182,7 +182,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'KOTAK-MC',
     name: 'Kotak Midcap Fund (formerly Emerging Equity) - Direct Plan - Growth',
-    isin: 'INF174K01844',
+    isin: 'INF174K01LT0',
     assetClass: 'Mutual Funds',
     sector: 'Mid Cap',
     exchange: 'AMFI',
@@ -192,7 +192,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'MIRAE-LC',
     name: 'Mirae Asset Large Cap Fund - Direct Plan - Growth',
-    isin: 'INF769K01151',
+    isin: 'INF769K01AX2',
     assetClass: 'Mutual Funds',
     sector: 'Large Cap',
     exchange: 'AMFI',
@@ -202,7 +202,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'HDFC-MF',
     name: 'HDFC Mid-Cap Opportunities Fund - Direct Plan - Growth',
-    isin: 'INF179K01BE2',
+    isin: 'INF179K01XQ0',
     assetClass: 'Mutual Funds',
     sector: 'Mid Cap',
     exchange: 'AMFI',
@@ -212,7 +212,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'SBI-SC',
     name: 'SBI Small Cap Fund - Direct Plan - Growth',
-    isin: 'INF200K01T43',
+    isin: 'INF200K01T51',
     assetClass: 'Mutual Funds',
     sector: 'Small Cap',
     exchange: 'AMFI',
@@ -297,7 +297,7 @@ const INSTRUMENTS_CATALOG = [
   {
     symbol: 'MO-N100',
     name: 'Motilal Oswal Nasdaq 100 FoF - Direct Plan - Growth',
-    isin: 'INF247L01792',
+    isin: 'INF247L01718',
     assetClass: 'International',
     sector: 'US Technology',
     exchange: 'AMFI',
