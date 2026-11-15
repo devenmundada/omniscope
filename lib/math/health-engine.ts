@@ -197,6 +197,10 @@ export function evaluateHealthScores(input: PureHealthInput): HealthEngineOutput
   let divMetricLabel = 'HHI Concentration';
   let divMetricValue = 'Unassessed';
   let divRecommendation = 'Spread investments across multiple non-correlated asset classes and prevent single-stock dominance.';
+  if (holdingsCount > 0 && hhi === null) {
+    divInsight = 'Less than half of your portfolio (by cost) has a verified market price yet, so concentration is not scored to avoid a misleading result.';
+    divRecommendation = 'Run "Sync Prices" on the Portfolio page; the pillar is assessed automatically once verified prices arrive.';
+  }
 
   if (holdingsCount > 0 && hhi !== null) {
     divIsAssessed = true;
@@ -496,7 +500,7 @@ export function evaluateHealthScores(input: PureHealthInput): HealthEngineOutput
         id: 'unpriced-assets',
         severity: 'medium',
         title: 'Unpriced Holdings Exposure',
-        description: `${unpricedHoldingCount} holding(s) currently lack verified live/EOD market quotations, representing ₹${(unpricedInvestedAmount / 100000).toFixed(1)}L in unverified valuation.`,
+        description: `${unpricedHoldingCount} holding(s) currently lack verified end-of-day market quotations (₹${(unpricedInvestedAmount / 100000).toFixed(1)}L at cost basis). They are excluded from market-value percentages until a verified price arrives.`,
         category: 'UNPRICED_ASSETS',
         actionableStep: 'Check symbol mappings or trigger a market data sync to ensure full mark-to-market accuracy.',
       });

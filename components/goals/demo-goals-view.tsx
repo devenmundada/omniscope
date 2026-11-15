@@ -130,12 +130,12 @@ function DemoGoalCard({ goal }: { goal: Goal }) {
             <span
               className={cn(
                 'shrink-0 rounded-full px-2.5 py-1 text-xs font-medium hidden sm:inline-flex',
-                goal.onTrack ? 'bg-success-muted text-success' : 'bg-warning-muted text-warning'
+                goal.onTrack ? 'bg-success-muted text-emerald-800 dark:text-success' : 'bg-warning-muted text-amber-800 dark:text-warning'
               )}
             >
               {goal.onTrack ? 'On track' : 'Slightly behind'}
             </span>
-            <button className="text-muted-foreground hover:text-foreground">
+            <button type="button" aria-label={isExpanded ? 'Collapse goal details' : 'Expand goal details'} aria-expanded={isExpanded} className="text-muted-foreground hover:text-foreground">
               {isExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
             </button>
           </div>

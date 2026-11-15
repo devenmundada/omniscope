@@ -494,6 +494,20 @@ export function RealHoldingsView({
                               )}
                             </div>
                           </>
+                        ) : h.referencePrice != null ? (
+                          <>
+                            <p
+                              className="tnum text-sm text-muted-foreground line-through decoration-muted-foreground/40"
+                              title="Unverified catalogue reference price. Not used for valuation."
+                            >
+                              {formatINR(h.referencePrice, { decimals: 2 })}
+                            </p>
+                            <div className="flex items-center justify-end gap-1 mt-0.5">
+                              <span className="inline-flex items-center rounded bg-amber-500/10 px-1 py-0.2 text-[9px] font-medium text-amber-700 border border-amber-500/20">
+                                Ref only · awaiting verified feed
+                              </span>
+                            </div>
+                          </>
                         ) : (
                           <>
                             <span className="tnum text-sm text-muted-foreground font-serif">—</span>

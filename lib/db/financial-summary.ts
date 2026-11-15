@@ -159,9 +159,11 @@ export async function getPersonalFinancialSummary(userId: string): Promise<Perso
   let onTrackCount = 0;
   let behindCount = 0;
 
-  const currentYear = new Date().getFullYear();
+  // Projections must be anchored to today's date (not 1 January of the current year),
+  // otherwise months-remaining is overstated and projections become optimistic.
+  const asOfDate = new Date();
   const goalProjections = userGoals.map((g: GoalEntity) => {
-    const details = computeGoalProjection(g, currentYear);
+    const details = computeGoalProjection(g, asOfDate);
     totalTargetAmount += details.targetAmount;
     totalCurrentAllocated += details.currentAllocatedAmount;
     totalMonthlyCommitment += details.monthlyContribution;

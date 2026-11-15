@@ -32,10 +32,22 @@ export function calculateFinancialHealth(
   let top1WeightPct: number | null = null;
   let assetClassCount = 0;
 
+  // Cost basis of holdings that have no verified price (excluded from valuation).
+  const unpricedInvestedAmount = holdings
+    .filter((h) => h.currentValue == null)
+    .reduce((sum, h) => sum + h.investedAmount, 0);
+  const pricedCostShare = portfolioSummary.totalInvested > 0
+    ? 1 - unpricedInvestedAmount / portfolioSummary.totalInvested
+    : 0;
+
   if (holdings.length > 0) {
     const xray = calculateXRayAnalytics(holdings, summary.userId);
-    hhi = xray.concentration.hhi;
-    top1WeightPct = xray.concentration.top1WeightPct;
+    // Concentration is only meaningful when most of the portfolio (by cost) is verified-priced.
+    // Otherwise HHI would describe a small subset and produce a misleading diagnosis.
+    if (pricedCostShare >= 0.5) {
+      hhi = xray.concentration.hhi;
+      top1WeightPct = xray.concentration.top1WeightPct;
+    }
     assetClassCount = xray.assetClassAllocations.length;
   }
 
@@ -49,7 +61,7 @@ export function calculateFinancialHealth(
     top1WeightPct,
     assetClassCount,
     unpricedHoldingCount: portfolioSummary.unpricedHoldingCount,
-    unpricedInvestedAmount: portfolioSummary.totalInvested,
+    unpricedInvestedAmount,
     termInsuranceCover: insurance.termInsuranceCover,
     healthInsuranceCover: insurance.healthInsuranceCover,
     goalsCount: goalsSummary.totalGoalsCount,

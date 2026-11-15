@@ -245,20 +245,20 @@ function RealGoalCard({
 
   // Status badge styling
   let statusBadgeLabel = 'On track';
-  let statusBadgeClass = 'bg-success-muted text-success';
+  let statusBadgeClass = 'bg-success-muted text-emerald-800 dark:text-success';
 
   if (details.isFunded) {
     statusBadgeLabel = 'Target Achieved';
-    statusBadgeClass = 'bg-success-muted text-success';
+    statusBadgeClass = 'bg-success-muted text-emerald-800 dark:text-success';
   } else if (details.isOverdue) {
     statusBadgeLabel = 'Overdue';
-    statusBadgeClass = 'bg-danger-muted text-danger';
+    statusBadgeClass = 'bg-danger-muted text-red-800 dark:text-danger';
   } else if (details.isDueToday) {
     statusBadgeLabel = 'Due Today';
-    statusBadgeClass = 'bg-gold-muted text-gold';
+    statusBadgeClass = 'bg-gold-muted text-amber-800 dark:text-gold';
   } else if (!details.onTrack) {
     statusBadgeLabel = 'Slightly behind';
-    statusBadgeClass = 'bg-warning-muted text-warning';
+    statusBadgeClass = 'bg-warning-muted text-amber-800 dark:text-warning';
   }
 
   return (
@@ -333,7 +333,7 @@ function RealGoalCard({
               {isDeleting ? <Loader2 className="size-4 animate-spin text-danger" /> : <Trash2 className="size-4" />}
             </button>
 
-            <button className="text-muted-foreground hover:text-foreground p-1">
+            <button type="button" aria-label={isExpanded ? 'Collapse goal details' : 'Expand goal details'} aria-expanded={isExpanded} className="text-muted-foreground hover:text-foreground p-1">
               {isExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
             </button>
           </div>
