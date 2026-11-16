@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { computeGoalProjectionDetails } from '@/lib/math/financial-projections';
 import { simulateGoal } from '@/lib/math/monte-carlo';
 import { getRiskReport, type RiskReport } from '@/lib/db/risk';
+import { getTaxCentreData } from '@/lib/db/tax';
+import { CATEGORY_LABELS, classifyPosition, computeTax, lossHarvest, ltcgHarvestPlan, TAX_RULES, waitToSave } from '@/lib/math/tax';
 import { efficientFrontier, evaluate, frontierAtVolatility, HISTORICAL_SCENARIOS, rebalanceTrades, stressTest } from '@/lib/math/optimizer';
 import {
   goalsDigest,
@@ -28,6 +30,50 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
   const noRisk = { error: 'Not enough verified price history to analyse risk yet. Add holdings and sync prices on the Portfolio page.' };
 
   return {
+    getTaxEstimate: tool({
+      description:
+        'Indian capital-gains tax picture (FY rules since 23 July 2024): unrealised gains by holding with short/long-term status and days until long-term, tax if everything were sold today (after loss set-off, Rs 1.25 lakh equity LTCG exemption and 4% cess), plus gain-harvesting, wait-to-save and loss-harvesting opportunities. Holdings without a purchase date are listed separately. Use for any tax, LTCG/STCG, "should I wait" or harvesting question.',
+      inputSchema: z.object({
+        slabRatePct: z.number().min(0).max(30).optional().describe('Income-tax slab in per cent; defaults to the rate implied by the profile income'),
+        ltcgAlreadyBookedINR: z.number().nonnegative().optional().describe('Long-term equity gains already booked this financial year'),
+      }),
+      execute: async ({ slabRatePct, ltcgAlreadyBookedINR }) => {
+        const data = await getTaxCentreData(snapshot.summary.userId);
+        const opts = { slabRate: slabRatePct != null ? slabRatePct / 100 : data.defaultSlabRate, ltcgAlreadyBooked: ltcgAlreadyBookedINR ?? 0 };
+        const positions = data.holdings.map((h) => classifyPosition(h, data.asOf));
+        const dated = positions.filter((p) => p.bucket);
+        const tax = computeTax(dated, opts);
+        const harvest = ltcgHarvestPlan(dated, tax.exemptionLeft + tax.exemptionUsed);
+        const round = (x: number) => Math.round(x);
+        return {
+          financialYear: data.financialYear,
+          asOf: data.asOf,
+          slabRatePct: Math.round(opts.slabRate * 100),
+          slabRateSource: slabRatePct != null ? 'user' : data.slabSource,
+          taxIfSoldEverythingTodayINR: round(tax.totalTax),
+          taxByBucketINR: Object.fromEntries(Object.entries(tax.tax).map(([k, v]) => [k, round(v)])),
+          ltcgExemptionLeftINR: round(Math.max(0, TAX_RULES.ltcgExemption - opts.ltcgAlreadyBooked)),
+          lossesToCarryForwardINR: { shortTerm: round(tax.carryForward.shortTerm), longTerm: round(tax.carryForward.longTerm) },
+          holdings: positions.map((p) => ({
+            symbol: p.symbol,
+            type: CATEGORY_LABELS[p.category],
+            purchaseDate: p.purchaseDate,
+            status: p.excludedReason ?? (p.term === 'long' ? 'long-term' : `short-term, long-term in ${p.daysToLongTerm} days`),
+            unrealisedGainINR: round(p.gain),
+            taxIfSoldAloneINR: p.bucket ? round(computeTax([p], opts).totalTax) : null,
+          })),
+          gainHarvesting: {
+            gainBookableTaxFreeINR: round(harvest.gainBooked),
+            futureTaxSavedINR: round(harvest.futureTaxSaved),
+            steps: harvest.suggestions.map((h) => ({ symbol: h.position.symbol, units: Math.round(h.units * 100) / 100, saleValueINR: round(h.saleValue), gainBookedINR: round(h.gainBooked) })),
+          },
+          waitToSave: waitToSave(dated, opts).map((w) => ({ symbol: w.position.symbol, days: w.days, taxNowINR: round(w.taxNow), taxIfLongTermINR: round(w.taxIfLongTerm) })),
+          lossHarvesting: lossHarvest(dated, opts).map((l) => ({ symbol: l.position.symbol, lossINR: round(l.loss), term: l.position.term, taxShieldINR: round(l.taxShield) })),
+          missingPurchaseDates: positions.filter((p) => p.excludedReason === 'Purchase date needed').map((p) => p.symbol),
+          notes: 'Estimate, not tax advice. Surcharge and pre-2018 grandfathering not modelled. Sovereign Gold Bonds redeemed with RBI are tax-free. Dates can be added on the Tax Centre page (/tax).',
+        };
+      },
+    }),
     getRiskReport: tool({
       description:
         'Risk analysis from two years of verified daily prices: annual return (CAGR), volatility, Sharpe, Sortino, worst drawdown with dates, beta and alpha vs Nifty 50, 1-day and 1-month 95% Value-at-Risk and CVaR in rupees, diversification benefit, and each holding\u2019s share of money vs share of risk. Use for any question about risk, volatility, drawdowns, VaR or "how risky is my portfolio".',
@@ -247,4 +293,5 @@ export const COPILOT_TOOL_LABELS: Record<string, string> = {
   getRiskReport: 'Ran your Risk Lab analysis',
   optimizePortfolio: 'Ran the portfolio optimiser',
   stressTestPortfolio: 'Crash-tested your portfolio',
+  getTaxEstimate: 'Estimated your capital-gains tax',
 };

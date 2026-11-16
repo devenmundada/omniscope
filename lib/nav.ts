@@ -13,6 +13,7 @@ import {
   TrendingUp,
   Radar,
   BookOpenCheck,
+  ReceiptIndianRupee,
 } from 'lucide-react'
 
 export type NavItem = {
@@ -28,6 +29,7 @@ export const navItems: NavItem[] = [
   { href: '/portfolio', label: 'Portfolio', question: 'What do I own?', icon: Wallet },
   { href: '/x-ray', label: 'Portfolio X-Ray', question: 'What am I actually exposed to?', icon: ScanSearch },
   { href: '/risk', label: 'Risk Lab', question: 'How much risk am I really taking?', icon: Radar },
+  { href: '/tax', label: 'Tax Centre', question: 'What would I owe, and how can I owe less?', icon: ReceiptIndianRupee },
   { href: '/health', label: 'Financial Health', question: 'How healthy am I financially?', icon: HeartPulse },
   { href: '/goals', label: 'Goals', question: 'Am I getting closer to my dreams?', icon: Target },
   { href: '/learn', label: 'Learning', question: 'What should I understand next?', icon: GraduationCap },

@@ -5,8 +5,8 @@ const stages: Array<{ icon: LucideIcon; title: string; items: string[] }> = [
   { icon: Globe, title: 'Sources', items: ['NSE bhavcopy (official closes)', 'AMFI NAV file', 'Gold & USD/INR feeds', 'Google News RSS', 'Your statements (PDF/CSV)'] },
   { icon: Workflow, title: 'Ingestion', items: ['Daily Vercel cron', 'Bonus & split cleaning', 'Fallback chain per source', 'AI statement extraction'] },
   { icon: Database, title: 'Storage', items: ['Postgres on Supabase (Mumbai)', 'Per-user row isolation', '2-year daily price history', 'AI insight cache'] },
-  { icon: Cpu, title: 'Engines', items: ['XIRR (Newton–Raphson)', 'Monte Carlo goals', 'Risk: VaR, beta, drawdown', 'Markowitz optimiser'] },
-  { icon: Bot, title: 'AI layer', items: ['Gemini with 10 tools', 'Grounded in your data', 'Model fallback & time budgets', 'Advice guardrails'] },
+  { icon: Cpu, title: 'Engines', items: ['XIRR (Newton–Raphson)', 'Monte Carlo goals', 'Risk: VaR, beta, drawdown', 'Markowitz optimiser', 'Capital-gains tax'] },
+  { icon: Bot, title: 'AI layer', items: ['Gemini with 11 tools', 'Grounded in your data', 'Model fallback & time budgets', 'Advice guardrails'] },
   { icon: MonitorSmartphone, title: 'You', items: ['Dashboard & Risk Lab', 'Goals & health score', 'Copilot chat', 'Market news, explained'] },
 ];
 

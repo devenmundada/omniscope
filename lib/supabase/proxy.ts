@@ -8,6 +8,7 @@ const PROTECTED_PREFIXES = [
   '/portfolio',
   '/x-ray',
   '/risk',
+  '/tax',
   '/health',
   '/goals',
   '/mentor',

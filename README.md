@@ -253,6 +253,20 @@ Institutional risk analytics on the user's own holdings, from two years of verif
 
 The AI Copilot can run the same engine through three tools: `getRiskReport`, `optimizePortfolio` and `stressTestPortfolio`.
 
+## 🧾 Tax Centre
+
+Capital-gains tax for Indian investors under the rules in force since 23 July 2024.
+
+- Tax if every holding were sold today: 20% short-term and 12.5% long-term equity (above the ₹1.25 lakh yearly exemption), 12.5% long-term for gold ETFs, Gold Bonds and international funds, slab rate otherwise, plus 4% cess
+- Loss set-off in the order that minimises tax; losses left to carry forward
+- Each holding's status and the exact day it turns long-term (12 months listed, 24 months unlisted)
+- **Gain harvesting**: which units to sell and rebuy to book gains up to the exemption tax-free
+- **Wait to save**: short-term gains that turn long-term within 120 days, and the tax saved by waiting
+- **Loss harvesting**: unrealised losses and the tax they could offset
+- Slab rate estimated from profile income under the new regime; purchase dates can be added inline
+
+The Copilot answers tax questions through the `getTaxEstimate` tool.
+
 ---
 
 # 🚀 Tech Stack
@@ -273,7 +287,7 @@ The AI Copilot can run the same engine through three tools: `getRiskReport`, `op
 
 ```
 Sources                Ingestion                 Storage                 Engines                    AI layer                 User
-NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 10 tools   ──►  Dashboard
+NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 11 tools   ──►  Dashboard
 AMFI NAV file          bonus/split cleaning      2-year price history    Monte Carlo goals          grounded answers         Risk Lab
 gold-api + ECB FX      source fallbacks          per-user holdings       Health score, HHI          model fallback           Goals, Health
 Google News RSS        AI statement reader       AI insight cache        Risk, Markowitz, stress    advice guardrails        Copilot chat
@@ -329,11 +343,12 @@ Every screen should answer
 - Verified NSE and AMFI pricing with two-year history
 - AI Copilot with tool calling, AI Statement Reader, AI market analyst
 - Risk Lab: risk metrics, Markowitz optimiser, crash tests
+- Tax Centre: capital-gains estimates, gain and loss harvesting
 - Public landing page and methodology page, command palette
 
 ## 🚧 Next
 
-- Capital-gains tax estimates and tax-loss harvesting (needs purchase dates)
+- Lot-level (FIFO) tracking from transaction history for exact holding periods
 - Account Aggregator and broker integrations
 - Price alerts and weekly email reports
 
