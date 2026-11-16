@@ -4,13 +4,14 @@ import { calculateXRayAnalytics, type XRayAnalytics } from '@/lib/db/xray';
 import { calculateFinancialHealth, type FinancialHealthAssessment } from '@/lib/db/health';
 import { getPortfolioPerformance, type PortfolioPerformance } from '@/lib/db/performance';
 import { portfolioAssumptions, simulateGoalFromDetails, type GoalSimulation } from '@/lib/db/goal-simulation';
+import { portfolioRiskModel } from '@/lib/db/risk';
 
 export interface FinancialSnapshot {
   summary: PersonalFinancialSummary;
   xray: XRayAnalytics | null;
   health: FinancialHealthAssessment;
   performance: PortfolioPerformance | null;
-  assumptions: ReturnType<typeof portfolioAssumptions>;
+  assumptions: { annualReturn: number; annualVolatility: number; source: GoalSimulation['assumptionSource'] };
   goalSimulations: Array<{ goalId: string; simulation: GoalSimulation | null }>;
 }
 
@@ -20,7 +21,12 @@ export async function loadFinancialSnapshot(userId: string): Promise<FinancialSn
   const xray = summary.holdings.length > 0 ? calculateXRayAnalytics(summary.holdings, userId) : null;
   const health = calculateFinancialHealth(summary);
   const performance = await getPortfolioPerformance(summary.holdings).catch(() => null);
-  const assumptions = portfolioAssumptions(summary.holdings, performance?.assetClassStats ?? []);
+  // Same model as the Risk Lab and goal optimiser when there is enough price history; otherwise
+  // asset-class estimates.
+  const riskModel = summary.holdings.length > 0 ? await portfolioRiskModel(userId, summary.holdings).catch(() => null) : null;
+  const assumptions = riskModel
+    ? { ...riskModel, source: 'risk-model' as const }
+    : portfolioAssumptions(summary.holdings, performance?.assetClassStats ?? []);
   const goalSimulations = summary.goalsSummary.projections.map((p, i) => ({
     goalId: p.goal.id,
     simulation: simulateGoalFromDetails(p.details, assumptions, i),

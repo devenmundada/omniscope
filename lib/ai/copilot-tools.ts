@@ -5,6 +5,8 @@ import { computeGoalProjectionDetails } from '@/lib/math/financial-projections';
 import { simulateGoal } from '@/lib/math/monte-carlo';
 import { getRiskReport, type RiskReport } from '@/lib/db/risk';
 import { getTaxCentreData } from '@/lib/db/tax';
+import { goalSeed } from '@/lib/db/goal-optimizer';
+import { goalPlan, goalProbability, sipForProbability, type GoalInput } from '@/lib/math/goal-optimizer';
 import { CATEGORY_LABELS, classifyPosition, computeTax, lossHarvest, ltcgHarvestPlan, TAX_RULES, waitToSave } from '@/lib/math/tax';
 import { efficientFrontier, evaluate, frontierAtVolatility, HISTORICAL_SCENARIOS, rebalanceTrades, stressTest } from '@/lib/math/optimizer';
 import {
@@ -30,6 +32,56 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
   const noRisk = { error: 'Not enough verified price history to analyse risk yet. Add holdings and sync prices on the Portfolio page.' };
 
   return {
+    optimizeForGoals: tool({
+      description:
+        'Goal-based optimiser: for every portfolio on the user\u2019s efficient frontier, estimates each goal\u2019s Monte Carlo probability of success and finds the mix with the best odds per goal and for all goals together. Returns current vs best probability, the return each goal needs, the best mix\u2019s return and risk, and the SIP needed for an 80% chance. Use for "which mix gives my goals the best chance", "should I take more or less risk for my goal" or similar. Present mixes as model output, not advice.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const r = await risk();
+        if (!r) return noRisk;
+        const goals: GoalInput[] = [];
+        snapshot.summary.goalsSummary.projections.forEach((p, i) => {
+          const d = p.details;
+          if (!d.isFunded && !d.isOverdue && d.monthsRemaining > 0)
+            goals.push({ id: p.goal.id, name: p.goal.name, corpus: d.currentAllocatedAmount, monthly: d.monthlyContribution, months: d.monthsRemaining, target: d.targetAmount, seed: goalSeed(i) });
+        });
+        if (goals.length === 0) return { error: 'No open goals to optimise for. Add a goal with a target and deadline on the Goals page.' };
+        const { mu, cov, riskFree } = r.optimizer;
+        const current = evaluate(r.assets.map((a) => a.weight), mu, cov, riskFree);
+        const f = efficientFrontier(mu, cov, riskFree, 0.35, 40);
+        const points = [...f.points, f.maxSharpe].sort((a, b) => a.volatility - b.volatility);
+        const plan = goalPlan(goals, points, 1500);
+        const together = points[plan.average.bestIndex];
+        return {
+          method: 'Monte Carlo (10,000 paths) at every efficient-frontier portfolio; same seeds as the Goals page.',
+          currentMix: { expectedReturnPct: pct1(current.expectedReturn), volatilityPct: pct1(current.volatility) },
+          goals: goals.map((g, i) => {
+            const best = points[plan.curves[i].bestIndex];
+            const sip = sipForProbability(g, best, 0.8, 2000);
+            return {
+              goal: g.name,
+              yearsLeft: Math.round((g.months / 12) * 10) / 10,
+              requiredReturnPct: pct1(plan.curves[i].requiredReturn),
+              currentProbabilityPct: Math.round(goalProbability(g, current, 10000) * 100),
+              bestProbabilityPct: Math.round(goalProbability(g, best, 10000) * 100),
+              bestMix: { expectedReturnPct: pct1(best.expectedReturn), volatilityPct: pct1(best.volatility) },
+              sipForEightyPctINR: sip,
+              currentSipINR: Math.round(g.monthly),
+            };
+          }),
+          bestSingleMixForAllGoals: {
+            expectedReturnPct: pct1(together.expectedReturn),
+            volatilityPct: pct1(together.volatility),
+            probabilitiesPct: goals.map((g) => ({ goal: g.name, probabilityPct: Math.round(goalProbability(g, together, 10000) * 100) })),
+            topWeights: r.assets
+              .map((a, i) => ({ symbol: a.symbol, targetPct: pct1(together.weights[i]), currentPct: pct1(a.weight) }))
+              .sort((a, b) => (b.targetPct ?? 0) - (a.targetPct ?? 0))
+              .slice(0, 5),
+          },
+          page: '/goals/optimiser',
+        };
+      },
+    }),
     getTaxEstimate: tool({
       description:
         'Indian capital-gains tax picture (FY rules since 23 July 2024): unrealised gains by holding with short/long-term status and days until long-term, tax if everything were sold today (after loss set-off, Rs 1.25 lakh equity LTCG exemption and 4% cess), plus gain-harvesting, wait-to-save and loss-harvesting opportunities. Holdings without a purchase date are listed separately. Use for any tax, LTCG/STCG, "should I wait" or harvesting question.',
@@ -294,4 +346,5 @@ export const COPILOT_TOOL_LABELS: Record<string, string> = {
   optimizePortfolio: 'Ran the portfolio optimiser',
   stressTestPortfolio: 'Crash-tested your portfolio',
   getTaxEstimate: 'Estimated your capital-gains tax',
+  optimizeForGoals: 'Ran the goal-based optimiser',
 };

@@ -100,8 +100,12 @@ export interface PortfolioReturns {
  * factors) over the last `lookbackDays` calendar days. Gold bonds use Gold BeES as a price proxy and
  * deposits a steady accrual; holdings with too little history are reported as excluded.
  */
-export async function loadPortfolioReturns(userId: string, lookbackDays = LOOKBACK_DAYS): Promise<PortfolioReturns | null> {
-  const holdings = await getUserHoldings(userId);
+export async function loadPortfolioReturns(
+  userId: string,
+  lookbackDays = LOOKBACK_DAYS,
+  preloaded?: UserHoldingView[]
+): Promise<PortfolioReturns | null> {
+  const holdings = preloaded ?? (await getUserHoldings(userId));
   const grouped = groupHoldings(holdings);
   if (grouped.length === 0) return null;
 
@@ -156,6 +160,26 @@ export function returnPriors(data: PortfolioReturns): { priors: number[]; betas:
     betas[j].gold > 0.7 && Math.abs(betas[j].equity) < 0.3 ? defaultStatsFor('Gold').r : defaultStatsFor(a.assetClass).r
   );
   return { priors, betas };
+}
+
+/**
+ * Expected annual return and volatility of the user's current mix from the risk model (shrunk
+ * expected returns, Ledoit-Wolf covariance of the actual holdings). Goal simulations use this so
+ * every page projects goals with the same model as the Risk Lab and the goal optimiser.
+ */
+export async function portfolioRiskModel(
+  userId: string,
+  holdings?: UserHoldingView[]
+): Promise<{ annualReturn: number; annualVolatility: number } | null> {
+  const data = await loadPortfolioReturns(userId, LOOKBACK_DAYS, holdings);
+  if (!data) return null;
+  const total = data.included.reduce((s, a) => s + a.value, 0);
+  const w = data.included.map((a) => a.value / total);
+  const { mu } = blendedExpectedReturns(data.returns, returnPriors(data).priors);
+  const cov = ledoitWolf(data.returns).cov;
+  const annualReturn = w.reduce((s, x, i) => s + x * mu[i], 0);
+  const variance = w.reduce((s, x, i) => s + x * cov[i].reduce((t, c, j) => t + c * w[j], 0), 0) * TRADING_DAYS;
+  return { annualReturn, annualVolatility: Math.sqrt(Math.max(variance, 0)) };
 }
 
 /** Builds the full risk analysis for a user's verified-priced holdings, or null if there is nothing to analyse. */

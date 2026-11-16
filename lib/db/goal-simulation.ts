@@ -8,7 +8,7 @@ import { defaultStatsFor } from './performance';
 export interface GoalSimulation {
   nominal: MonteCarloResult;
   inflationAdjustedProbability: number;
-  assumptionSource: 'portfolio-history' | 'portfolio-defaults' | 'balanced-default';
+  assumptionSource: 'risk-model' | 'portfolio-history' | 'portfolio-defaults' | 'balanced-default';
   annualReturn: number;
   annualVolatility: number;
 }

@@ -27,6 +27,7 @@ const TOOL_LABELS: Record<string, string> = {
   optimizePortfolio: 'Ran the portfolio optimiser',
   stressTestPortfolio: 'Crash-tested your portfolio',
   getTaxEstimate: 'Estimated your capital-gains tax',
+  optimizeForGoals: 'Ran the goal-based optimiser',
 };
 
 const STARTERS = [

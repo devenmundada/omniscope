@@ -2,6 +2,8 @@
 
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { Crosshair } from 'lucide-react';
 import {
   Car,
   GraduationCap,
@@ -91,14 +93,19 @@ export function RealGoalsView({
             title="Are you getting closer to your dreams?"
             question="Every rupee you invest is quietly working toward something. Here is how close each dream is."
           />
-          <Button
-            onClick={handleOpenCreate}
-            size="sm"
-            className="self-start sm:self-center gap-1.5 shrink-0"
-          >
-            <Plus className="size-4" />
-            Add Goal
-          </Button>
+          <div className="flex shrink-0 gap-2 self-start sm:self-center">
+            <Link
+              href="/goals/optimiser"
+              className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-accent"
+            >
+              <Crosshair className="size-4" />
+              Optimise for my goals
+            </Link>
+            <Button onClick={handleOpenCreate} size="sm" className="gap-1.5">
+              <Plus className="size-4" />
+              Add Goal
+            </Button>
+          </div>
         </div>
       </StaggerItem>
 

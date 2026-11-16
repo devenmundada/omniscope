@@ -41,7 +41,9 @@ export function MonteCarloPanel({
   const pct = Math.round(nominal.probabilityOfSuccess * 100);
   const realPct = Math.round(simulation.inflationAdjustedProbability * 100);
   const sourceLabel =
-    simulation.assumptionSource === 'portfolio-history'
+    simulation.assumptionSource === 'risk-model'
+      ? 'from the Risk Lab model of your actual holdings (two years of prices, shrunk covariance)'
+      : simulation.assumptionSource === 'portfolio-history'
       ? 'calibrated from your holdings’ actual price history'
       : simulation.assumptionSource === 'portfolio-defaults'
         ? 'based on your asset mix and long-run asset-class averages'
