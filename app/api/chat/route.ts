@@ -88,8 +88,6 @@ export async function POST(req: NextRequest) {
     maxRetries: AI_MAX_RETRIES,
     // End with a visible error instead of a silent platform timeout at 60 s.
     timeout: { totalMs: 55_000 },
-    // Low thinking keeps multi-step tool answers well inside the 60 s function limit.
-    providerOptions: { google: { thinkingConfig: { thinkingLevel: 'low' } } },
     onEnd: async (event) => {
       if (!persist || !conversationId) return;
       try {

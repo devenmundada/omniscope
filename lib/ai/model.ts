@@ -8,12 +8,14 @@ import { logger } from '@/lib/logger';
  * GOOGLE_GENERATIVE_AI_API_KEY must be set in the server environment.
  * GEMINI_MODEL / GEMINI_FALLBACK_MODEL can override the model IDs without code changes.
  *
- * Gemini 2.5 Flash is deprecated and unavailable to new API keys, so the defaults are the
- * current free-tier models. Gemini 3.6+ ignores temperature/top_p/top_k (and will reject them
- * in later generations), so callers must not pass sampling parameters.
+ * Gemini 2.5 models are unavailable to new API keys. Measured on the free tier (16 Nov 2026) with a
+ * one-word prompt: gemini-3.5-flash-lite 0.7 s, gemini-3.1-flash-lite 1.8 s, gemini-3.6-flash 39 s,
+ * gemini-3.8-flash no answer within 40 s. The Flash-Lite models are the only ones that fit a 60 s
+ * serverless function. Gemini 3.6+ ignores temperature/top_p/top_k (and will reject them in later
+ * generations), so callers must not pass sampling parameters.
  */
-export const PRIMARY_MODEL_ID = process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash';
-export const FALLBACK_MODEL_ID = process.env.GEMINI_FALLBACK_MODEL?.trim() || 'gemini-3.5-flash-lite';
+export const PRIMARY_MODEL_ID = process.env.GEMINI_MODEL?.trim() || 'gemini-3.5-flash-lite';
+export const FALLBACK_MODEL_ID = process.env.GEMINI_FALLBACK_MODEL?.trim() || 'gemini-3.1-flash-lite';
 
 export function isAiConfigured(): boolean {
   return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim());
