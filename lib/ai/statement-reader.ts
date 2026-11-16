@@ -24,10 +24,11 @@ export async function extractStatement(file: { bytes: Uint8Array; mediaType: str
         { type: 'file' as const, data: file.bytes, mediaType: file.mediaType, filename: file.filename },
       ];
 
-  const { output, modelId } = await withModelFallback(async (model, id) => {
+  const { output, modelId } = await withModelFallback(async (model, id, timeout) => {
     const res = await generateText({
       model,
       maxRetries: AI_MAX_RETRIES,
+      timeout,
       output: Output.object({ schema: statementSchema }),
       messages: [{ role: 'user', content }],
     });

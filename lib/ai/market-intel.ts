@@ -235,10 +235,11 @@ export async function getMarketIntelligence(userId: string, s: FinancialSnapshot
     };
 
     try {
-      const res = await withModelFallback(async (m, id) => {
+      const res = await withModelFallback(async (m, id, timeout) => {
         const out = await generateText({
           model: m,
           maxRetries: AI_MAX_RETRIES,
+          timeout,
           output: Output.object({ schema: intelSchema }),
           system:
             'You are a financial news analyst for Indian retail investors. Use ONLY the JSON facts and headlines given. ' +

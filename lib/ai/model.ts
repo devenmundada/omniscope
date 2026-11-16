@@ -36,14 +36,19 @@ export function fallbackModel() {
  */
 export const AI_MAX_RETRIES = 0;
 
-/** Runs an AI call with the primary model, retrying once on the lighter fallback model (e.g. quota limits). */
-export async function withModelFallback<T>(fn: (model: ReturnType<typeof primaryModel>, modelId: string) => Promise<T>): Promise<T> {
+/** Per-model time budget, so a slow primary still leaves the fallback time to answer within 60 s. */
+export const AI_ATTEMPT_TIMEOUT = { totalMs: 25_000 } as const;
+
+/** Runs an AI call with the primary model, retrying once on the lighter fallback model (e.g. quota limits, slowness). */
+export async function withModelFallback<T>(
+  fn: (model: ReturnType<typeof primaryModel>, modelId: string, timeout: typeof AI_ATTEMPT_TIMEOUT) => Promise<T>
+): Promise<T> {
   try {
-    return await fn(primaryModel(), PRIMARY_MODEL_ID);
+    return await fn(primaryModel(), PRIMARY_MODEL_ID, AI_ATTEMPT_TIMEOUT);
   } catch (err) {
     if (FALLBACK_MODEL_ID === PRIMARY_MODEL_ID) throw err;
     logger.warn(`AI: ${PRIMARY_MODEL_ID} failed (status ${aiErrorStatus(err) ?? 'n/a'}); trying ${FALLBACK_MODEL_ID}`);
-    return await fn(fallbackModel(), FALLBACK_MODEL_ID);
+    return await fn(fallbackModel(), FALLBACK_MODEL_ID, AI_ATTEMPT_TIMEOUT);
   }
 }
 
@@ -71,6 +76,9 @@ export function describeAiError(err: unknown, modelId: string = PRIMARY_MODEL_ID
   }
   if (status === 401 || status === 403 || /api key|API_KEY|permission/i.test(msg)) {
     return `The AI service rejected the API key${code}. Please check GOOGLE_GENERATIVE_AI_API_KEY in the deployment settings.`;
+  }
+  if (e instanceof Error && (/timeout|abort/i.test(e.name) || /timed? ?out|aborted/i.test(msg))) {
+    return 'Gemini took too long to answer. Please try again in a moment.';
   }
   if ((status != null && status >= 500) || /overloaded|unavailable/i.test(msg)) {
     return `Google's Gemini service is busy right now${code}. Please try again in a minute.`;
