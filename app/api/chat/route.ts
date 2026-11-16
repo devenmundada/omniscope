@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { isSupabaseConfigured } from '@/lib/env';
-import { AI_NOT_CONFIGURED_MESSAGE, isAiConfigured, PRIMARY_MODEL_ID, primaryModel } from '@/lib/ai/model';
+import { AI_MAX_RETRIES, AI_NOT_CONFIGURED_MESSAGE, describeAiError, isAiConfigured, PRIMARY_MODEL_ID, primaryModel } from '@/lib/ai/model';
 import { loadFinancialSnapshot } from '@/lib/ai/snapshot';
 import { buildCopilotTools } from '@/lib/ai/copilot-tools';
 import { copilotSystemPrompt } from '@/lib/ai/copilot-prompt';
@@ -85,6 +85,7 @@ export async function POST(req: NextRequest) {
     messages: await convertToModelMessages(messages),
     tools: buildCopilotTools(snapshot),
     stopWhen: stepCountIs(6),
+    maxRetries: AI_MAX_RETRIES,
     // Low thinking keeps multi-step tool answers well inside the 60 s function limit.
     providerOptions: { google: { thinkingConfig: { thinkingLevel: 'low' } } },
     onEnd: async (event) => {
@@ -107,18 +108,8 @@ export async function POST(req: NextRequest) {
   return result.toUIMessageStreamResponse({
     originalMessages: messages,
     onError: (error) => {
-      const msg = error instanceof Error ? error.message : String(error);
-      logger.error('Copilot stream error:', msg);
-      if (/quota|rate|429|exhausted/i.test(msg)) {
-        return 'The free AI quota is busy right now. Please wait a minute and try again.';
-      }
-      if (/not found|not supported|no longer available|404/i.test(msg)) {
-        return `The AI model "${PRIMARY_MODEL_ID}" is not available to this API key. Set GEMINI_MODEL to a current Gemini model in the deployment settings.`;
-      }
-      if (/api key|API_KEY|permission|401|403/i.test(msg)) {
-        return 'The AI service rejected the API key. Please check GOOGLE_GENERATIVE_AI_API_KEY in the deployment settings.';
-      }
-      return 'Something went wrong while generating the answer. Please try again.';
+      logger.error('Copilot stream error:', error instanceof Error ? error.message : String(error));
+      return describeAiError(error);
     },
   });
 }

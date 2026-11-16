@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { isSupabaseConfigured } from '@/lib/env';
-import { AI_NOT_CONFIGURED_MESSAGE, isAiConfigured } from '@/lib/ai/model';
+import { AI_NOT_CONFIGURED_MESSAGE, aiErrorStatus, describeAiError, FALLBACK_MODEL_ID, isAiConfigured } from '@/lib/ai/model';
 import { extractStatement } from '@/lib/ai/statement-reader';
 import { logger } from '@/lib/logger';
 
@@ -57,9 +57,11 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     logger.error('Statement extraction failed:', msg);
-    const friendly = /quota|429|exhausted/i.test(msg)
-      ? 'The free AI quota is busy. Please try again in a minute.'
-      : 'The AI could not read this statement. Try a clearer PDF or a CSV export.';
+    // API failures (quota, overload, key) get Google's status; anything else means the document itself was unreadable.
+    const friendly =
+      aiErrorStatus(err) != null || /quota|exhausted/i.test(msg)
+        ? describeAiError(err, FALLBACK_MODEL_ID)
+        : 'The AI could not read this statement. Try a clearer PDF or a CSV export.';
     return NextResponse.json({ error: friendly }, { status: 502 });
   }
 }

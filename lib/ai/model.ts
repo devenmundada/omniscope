@@ -1,5 +1,7 @@
 import 'server-only';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { APICallError, RetryError } from 'ai';
+import { logger } from '@/lib/logger';
 
 /**
  * Google Gemini (free tier) is the default model provider.
@@ -27,14 +29,53 @@ export function fallbackModel() {
   return provider()(FALLBACK_MODEL_ID);
 }
 
+/**
+ * Gemini answers 429/503 with retry-after headers of up to ~60 s, and the AI SDK honours them on
+ * every retry. On a 60 s serverless function that gets the request killed before the fallback
+ * model or an error message can run, so AI calls fail fast and fall back instead.
+ */
+export const AI_MAX_RETRIES = 0;
+
 /** Runs an AI call with the primary model, retrying once on the lighter fallback model (e.g. quota limits). */
 export async function withModelFallback<T>(fn: (model: ReturnType<typeof primaryModel>, modelId: string) => Promise<T>): Promise<T> {
   try {
     return await fn(primaryModel(), PRIMARY_MODEL_ID);
   } catch (err) {
     if (FALLBACK_MODEL_ID === PRIMARY_MODEL_ID) throw err;
+    logger.warn(`AI: ${PRIMARY_MODEL_ID} failed (status ${aiErrorStatus(err) ?? 'n/a'}); trying ${FALLBACK_MODEL_ID}`);
     return await fn(fallbackModel(), FALLBACK_MODEL_ID);
   }
+}
+
+function rootAiError(err: unknown): unknown {
+  return RetryError.isInstance(err) ? err.lastError : err;
+}
+
+/** HTTP status returned by the Gemini API, when the failure came from the API call itself. */
+export function aiErrorStatus(err: unknown): number | undefined {
+  const e = rootAiError(err);
+  return APICallError.isInstance(e) ? e.statusCode : undefined;
+}
+
+/** User-facing explanation of a Gemini failure, including Google's status code for troubleshooting. */
+export function describeAiError(err: unknown, modelId: string = PRIMARY_MODEL_ID): string {
+  const e = rootAiError(err);
+  const msg = e instanceof Error ? e.message : String(e);
+  const status = aiErrorStatus(e);
+  const code = status ? ` (Google error ${status})` : '';
+  if (status === 429 || /quota|rate limit|exhausted/i.test(msg)) {
+    return `The free Gemini quota is used up for the moment${code}. Please wait a minute and try again.`;
+  }
+  if (status === 404 || /not found|no longer available/i.test(msg)) {
+    return `The AI model "${modelId}" is not available to this API key${code}. Set GEMINI_MODEL to a current Gemini model in the deployment settings.`;
+  }
+  if (status === 401 || status === 403 || /api key|API_KEY|permission/i.test(msg)) {
+    return `The AI service rejected the API key${code}. Please check GOOGLE_GENERATIVE_AI_API_KEY in the deployment settings.`;
+  }
+  if ((status != null && status >= 500) || /overloaded|unavailable/i.test(msg)) {
+    return `Google's Gemini service is busy right now${code}. Please try again in a minute.`;
+  }
+  return `Something went wrong while generating the answer${code}. Please try again.`;
 }
 
 export const AI_NOT_CONFIGURED_MESSAGE =

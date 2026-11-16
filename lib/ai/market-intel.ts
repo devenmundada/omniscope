@@ -7,7 +7,7 @@ import { db } from '@/lib/db';
 import { aiInsightCache } from '@/lib/db/schema';
 import { fetchNews, newsQueryFor, type NewsItem } from '@/lib/market-data/news';
 import { istDate } from '@/lib/market-data/history';
-import { isAiConfigured, withModelFallback } from './model';
+import { AI_MAX_RETRIES, isAiConfigured, withModelFallback } from './model';
 import type { FinancialSnapshot } from './snapshot';
 import { logger } from '@/lib/logger';
 
@@ -238,6 +238,7 @@ export async function getMarketIntelligence(userId: string, s: FinancialSnapshot
       const res = await withModelFallback(async (m, id) => {
         const out = await generateText({
           model: m,
+          maxRetries: AI_MAX_RETRIES,
           output: Output.object({ schema: intelSchema }),
           system:
             'You are a financial news analyst for Indian retail investors. Use ONLY the JSON facts and headlines given. ' +

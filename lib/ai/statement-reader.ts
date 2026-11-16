@@ -1,6 +1,6 @@
 import 'server-only';
 import { generateText, Output } from 'ai';
-import { withModelFallback } from './model';
+import { AI_MAX_RETRIES, withModelFallback } from './model';
 import { getInstrumentsCatalog } from '@/lib/db/portfolio';
 import { statementSchema, matchToCatalogue } from './statement-match';
 
@@ -27,6 +27,7 @@ export async function extractStatement(file: { bytes: Uint8Array; mediaType: str
   const { output, modelId } = await withModelFallback(async (model, id) => {
     const res = await generateText({
       model,
+      maxRetries: AI_MAX_RETRIES,
       output: Output.object({ schema: statementSchema }),
       messages: [{ role: 'user', content }],
     });
