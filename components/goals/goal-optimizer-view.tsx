@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo, useState, useSyncExternalStore } from 'react';
 import { CartesianGrid, Legend, Line, LineChart, ReferenceDot, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { ArrowLeft, Crosshair, Mountain, Scale } from 'lucide-react';
 import { Card } from '@/components/ui/card';
@@ -17,7 +17,27 @@ const pct = (x: number, d = 0) => `${(x * 100).toFixed(d)}%`;
 const inr = (x: number) => formatINRCompact(Math.round(x));
 const FINAL_PATHS = 10000;
 
+const noSubscribe = () => () => {};
+
+/**
+ * The Monte Carlo runs only in the browser: simulating every frontier portfolio on the server would
+ * waste CPU on each visit, and tiny floating-point differences between engines could make the
+ * server HTML disagree with the client.
+ */
 export function GoalOptimizerView({ data }: { data: GoalOptimizerData }) {
+  const inBrowser = useSyncExternalStore(noSubscribe, () => true, () => false);
+  if (!inBrowser) {
+    return (
+      <div className="space-y-6">
+        <Header />
+        <Card className="p-6 text-sm text-muted-foreground">Simulating 10,000 markets for every mix on your efficient frontier…</Card>
+      </div>
+    );
+  }
+  return <GoalOptimizerInner data={data} />;
+}
+
+function GoalOptimizerInner({ data }: { data: GoalOptimizerData }) {
   const { mu, cov } = data.optimizer;
   const rf = data.riskFree;
   const [capPct, setCapPct] = useState(35);
@@ -116,7 +136,7 @@ export function GoalOptimizerView({ data }: { data: GoalOptimizerData }) {
 
       {points[0].volatility > 0.08 && (
         <p className="rounded-xl border border-warning/40 bg-warning-muted/30 px-4 py-3 text-sm text-muted-foreground">
-          <span className="font-medium text-foreground">Your calmest possible mix still swings about {pct(points[0].volatility)} a year.</span> Every
+          <span className="font-medium text-foreground">Your calmest possible mix still swings about {pct(points[0].volatility, 1)} a year.</span> Every
           holding is shares or gold, with no debt fund or deposit, so near goals cannot be de-risked further. Adding a short-term debt fund
           would extend the frontier to the left and give goals within a few years a safer option.
         </p>
@@ -165,10 +185,10 @@ export function GoalOptimizerView({ data }: { data: GoalOptimizerData }) {
                 {d.sip == null ? (
                   <>Even a much larger SIP would not reach {pct(targetProb)} with these assumptions; consider a later deadline or a smaller target.</>
                 ) : d.sip <= d.goal.monthly ? (
-                  <>The best mix already gives at least a {pct(targetProb)} chance at your current SIP.</>
+                  <>The best mix already gives at least {targetProb === 0.8 ? 'an' : 'a'} {pct(targetProb)} chance at your current SIP.</>
                 ) : (
                   <>
-                    For a {pct(targetProb)} chance with the best mix, invest <span className="font-semibold tnum">{inr(d.sip)}</span> a month (
+                    For {targetProb === 0.8 ? 'an' : 'a'} {pct(targetProb)} chance with the best mix, invest <span className="font-semibold tnum">{inr(d.sip)}</span> a month (
                     <span className="tnum">{inr(d.sip - d.goal.monthly)}</span> more).
                   </>
                 )}
