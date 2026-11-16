@@ -7,6 +7,7 @@ import { getSafeRedirect } from './safe-redirect';
 const PROTECTED_PREFIXES = [
   '/portfolio',
   '/x-ray',
+  '/risk',
   '/health',
   '/goals',
   '/mentor',

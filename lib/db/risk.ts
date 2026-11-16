@@ -1,0 +1,188 @@
+import 'server-only';
+import { inArray } from 'drizzle-orm';
+import { db } from './index';
+import { instruments } from './schema';
+import { getUserHoldings, type UserHoldingView } from './portfolio';
+import { defaultStatsFor } from './performance';
+import { getHistory, BENCHMARK_SYMBOL, type HistoryPoint } from '@/lib/market-data/history';
+import {
+  alignedReturns,
+  blendedExpectedReturns,
+  cagr,
+  column,
+  computeRiskMetrics,
+  correlationFromCov,
+  factorBetas,
+  ledoitWolf,
+  portfolioReturns,
+  riskContributions,
+  sampleCovariance,
+  variance,
+  RISK_FREE_RATE,
+  TRADING_DAYS,
+  type Matrix,
+  type PortfolioRiskMetrics,
+  type PricePoint,
+} from '@/lib/math/risk';
+
+/** Gold ETF whose returns stand in for gold (and for Sovereign Gold Bonds, which track gold). */
+export const GOLD_FACTOR_SYMBOL = 'GOLDBEES';
+const LOOKBACK_DAYS = 760;
+const MIN_OBSERVATIONS = 120;
+
+export interface RiskAsset {
+  instrumentId: string;
+  symbol: string;
+  name: string;
+  assetClass: string;
+  value: number;
+  weight: number;
+  /** Symbol whose price history was used instead of the asset's own, if any. */
+  proxy: string | null;
+  annualReturn: number;
+  annualVolatility: number;
+  betaEquity: number;
+  betaGold: number;
+  r2: number;
+  expectedReturn: number;
+  riskShare: number;
+}
+
+export interface RiskReport {
+  asOf: string;
+  portfolioValue: number;
+  analysedValue: number;
+  assets: RiskAsset[];
+  excluded: Array<{ symbol: string; name: string; value: number; reason: string }>;
+  metrics: PortfolioRiskMetrics;
+  benchmark: { symbol: string; annualReturn: number; annualVolatility: number; maxDrawdown: number; sharpe: number };
+  correlation: Matrix;
+  /** Annualised inputs for the optimiser (asset order matches `assets`). */
+  optimizer: { mu: number[]; cov: Matrix; riskFree: number; shrinkage: number; historyWeight: number };
+  riskFree: number;
+}
+
+function groupHoldings(holdings: UserHoldingView[]) {
+  const map = new Map<string, { instrumentId: string; symbol: string; name: string; assetClass: string; value: number }>();
+  for (const h of holdings) {
+    if (h.currentValue == null || h.currentValue <= 0) continue;
+    const g = map.get(h.instrumentId);
+    if (g) g.value += h.currentValue;
+    else map.set(h.instrumentId, { instrumentId: h.instrumentId, symbol: h.symbol, name: h.name, assetClass: h.assetClass, value: h.currentValue });
+  }
+  return [...map.values()].sort((a, b) => b.value - a.value);
+}
+
+/** Synthetic accrual series for deposits: steady growth at `rate`, zero volatility. */
+function accrualSeries(calendar: string[], rate: number): PricePoint[] {
+  return calendar.map((date, t) => ({ date, close: (1 + rate) ** (t / TRADING_DAYS) }));
+}
+
+function thin<T>(points: T[], max: number): T[] {
+  if (points.length <= max) return points;
+  const step = Math.ceil(points.length / max);
+  return points.filter((_, i) => i % step === 0 || i === points.length - 1);
+}
+
+/** Builds the full risk analysis for a user's verified-priced holdings, or null if there is nothing to analyse. */
+export async function getRiskReport(userId: string): Promise<RiskReport | null> {
+  const holdings = await getUserHoldings(userId);
+  const grouped = groupHoldings(holdings);
+  if (grouped.length === 0) return null;
+
+  const factorRows = await db
+    .select({ id: instruments.id, symbol: instruments.symbol })
+    .from(instruments)
+    .where(inArray(instruments.symbol, [BENCHMARK_SYMBOL, GOLD_FACTOR_SYMBOL]));
+  const niftyId = factorRows.find((r) => r.symbol === BENCHMARK_SYMBOL)?.id;
+  const goldId = factorRows.find((r) => r.symbol === GOLD_FACTOR_SYMBOL)?.id;
+  if (!niftyId || !goldId) return null;
+
+  const since = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const history = await getHistory([...new Set([...grouped.map((g) => g.instrumentId), niftyId, goldId])], since);
+  const calendar = (history.get(niftyId) ?? []).map((p) => p.date);
+  if (calendar.length < MIN_OBSERVATIONS) return null;
+
+  const excluded: RiskReport['excluded'] = [];
+  const included: Array<(typeof grouped)[number] & { series: HistoryPoint[]; proxy: string | null }> = [];
+  for (const g of grouped) {
+    if (g.assetClass === 'Fixed Income') {
+      included.push({ ...g, series: accrualSeries(calendar, defaultStatsFor('Fixed Income').r), proxy: 'accrual' });
+    } else if (g.assetClass === 'Gold') {
+      included.push({ ...g, series: history.get(goldId) ?? [], proxy: GOLD_FACTOR_SYMBOL });
+    } else {
+      const own = history.get(g.instrumentId) ?? [];
+      if (own.length >= MIN_OBSERVATIONS) included.push({ ...g, series: own, proxy: null });
+      else excluded.push({ symbol: g.symbol, name: g.name, value: g.value, reason: `Only ${own.length} days of price history` });
+    }
+  }
+  if (included.length === 0) return null;
+
+  const { dates, returns: all } = alignedReturns(calendar, [...included.map((a) => a.series), history.get(niftyId)!, history.get(goldId)!]);
+  if (dates.length < MIN_OBSERVATIONS) return null;
+  const n = included.length;
+  const returns = all.map((row) => row.slice(0, n));
+  const nifty = column(all, n);
+  const gold = column(all, n + 1);
+
+  const analysedValue = included.reduce((s, a) => s + a.value, 0);
+  const weights = included.map((a) => a.value / analysedValue);
+  const daily = portfolioReturns(returns, weights);
+  const metrics = computeRiskMetrics(dates, daily, nifty);
+  const benchMetrics = computeRiskMetrics(dates, nifty, null);
+
+  const sample = sampleCovariance(returns);
+  const shares = riskContributions(sample, weights);
+  const lw = ledoitWolf(returns);
+  const betas = included.map((a, j) => (a.proxy === 'accrual' ? { equity: 0, gold: 0, r2: 0 } : factorBetas(column(returns, j), nifty, gold)));
+  // Long-run return prior by what a holding actually tracks, not its label: a gold ETF is gold.
+  const priors = included.map((a, j) =>
+    betas[j].gold > 0.7 && Math.abs(betas[j].equity) < 0.3 ? defaultStatsFor('Gold').r : defaultStatsFor(a.assetClass).r
+  );
+  const { mu, historyWeight } = blendedExpectedReturns(returns, priors);
+
+  const assets: RiskAsset[] = included.map((a, j) => {
+    const col = column(returns, j);
+    return {
+      instrumentId: a.instrumentId,
+      symbol: a.symbol,
+      name: a.name,
+      assetClass: a.assetClass,
+      value: a.value,
+      weight: weights[j],
+      proxy: a.proxy,
+      annualReturn: cagr(col),
+      annualVolatility: Math.sqrt(variance(col) * TRADING_DAYS),
+      betaEquity: betas[j].equity,
+      betaGold: betas[j].gold,
+      r2: betas[j].r2,
+      expectedReturn: mu[j],
+      riskShare: shares[j],
+    };
+  });
+
+  return {
+    asOf: dates[dates.length - 1],
+    portfolioValue: grouped.reduce((s, g) => s + g.value, 0),
+    analysedValue,
+    assets,
+    excluded,
+    metrics: { ...metrics, underwater: thin(metrics.underwater, 260) },
+    benchmark: {
+      symbol: BENCHMARK_SYMBOL,
+      annualReturn: benchMetrics.annualReturn,
+      annualVolatility: benchMetrics.annualVolatility,
+      maxDrawdown: benchMetrics.maxDrawdown,
+      sharpe: benchMetrics.sharpe,
+    },
+    correlation: correlationFromCov(sample),
+    optimizer: {
+      mu,
+      cov: lw.cov.map((row) => row.map((v) => v * TRADING_DAYS)),
+      riskFree: RISK_FREE_RATE,
+      shrinkage: lw.shrinkage,
+      historyWeight,
+    },
+    riskFree: RISK_FREE_RATE,
+  };
+}
