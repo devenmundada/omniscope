@@ -127,7 +127,7 @@ export function TaxCentreView({ data }: { data: TaxCentreData }) {
             <ul className="space-y-2">
               {harvest.suggestions.map((s) => (
                 <li key={s.position.id} className="text-sm">
-                  Sell and rebuy <span className="font-medium tnum">{s.units < 10 ? s.units.toFixed(2) : Math.floor(s.units)}</span> units of{' '}
+                  Sell and rebuy <span className="font-medium tnum">{(Math.round(s.units * 100) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span> units of{' '}
                   <span className="font-medium">{s.position.symbol}</span> ({inr(s.saleValue)}), booking {inr(s.gainBooked)}.
                 </li>
               ))}
