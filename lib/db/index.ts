@@ -4,6 +4,17 @@ import postgres from 'postgres';
 import * as schema from './schema';
 
 let client: postgres.Sql | null = null;
+
+/**
+ * Supabase's session pooler (port 5432) admits only `pool_size` (15) clients in total, and every warm
+ * serverless instance keeps its connections until the instance is recycled, so a few concurrent
+ * instances exhaust it ("max clients reached in session mode") and every page fails. The transaction
+ * pooler (port 6543, same credentials) shares server connections per transaction and is Supabase's
+ * recommendation for serverless. Works with prepare: false and ordinary transactions.
+ */
+export function toTransactionPooler(connectionString: string): string {
+  return connectionString.replace(/(\.pooler\.supabase\.com):5432(?=[/?]|$)/, '$1:6543');
+}
 let dbInstance: ReturnType<typeof drizzle<typeof schema>> | null = null;
 
 /**
@@ -19,8 +30,8 @@ export function getDb() {
       );
     }
 
-    client = postgres(connectionString, {
-      max: process.env.NODE_ENV === 'production' ? 10 : 1,
+    client = postgres(toTransactionPooler(connectionString), {
+      max: process.env.NODE_ENV === 'production' ? 5 : 1,
       idle_timeout: 20,
       connect_timeout: 10,
       prepare: false, // Recommended for connection poolers like Supabase/Neon/PgBouncer

@@ -7,7 +7,9 @@ import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import postgres from 'postgres';
 
-const url = process.env.DATABASE_URL;
+// Use Supabase's transaction pooler (6543) like the app does, so deploys don't fail when the
+// 15-client session pooler (5432) is busy.
+const url = process.env.DATABASE_URL?.replace(/(\.pooler\.supabase\.com):5432(?=[/?]|$)/, '$1:6543');
 if (!url) {
   console.log('[db-patches] DATABASE_URL not set; skipping schema patches.');
   process.exit(0);
