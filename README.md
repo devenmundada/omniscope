@@ -301,6 +301,14 @@ The `/methodology` page documents every data source (with live freshness), every
 
 # 🧪 Quality
 
+The `/evaluation` page runs three reproducible benchmarks on the live system:
+
+- **AI Copilot**: 26 questions across portfolio, health, goals, risk, tax, calculations and guardrails. Expected figures come from calling the same tools the Copilot uses, so the benchmark measures whether answers faithfully report computed numbers; it also checks tool selection, refusals and latency.
+- **Statement Reader**: six synthetic documents (CAS PDF, broker CSV, MF statement with transactions, broker report, informal email, and a non-statement) with known answers, scored field by field (name, ISIN, quantity, average cost, total cost).
+- **Optimiser backtest**: a five-year walk-forward test with monthly rebalancing, a one-year training window, 0.1% trading costs and no look-ahead, comparing the max-Sharpe and minimum-variance optimisers with the current mix, equal weight and the Nifty 50.
+
+Every table can be copied as Markdown for reports.
+
 - Unit tests check each engine against closed-form results: tangency and minimum-variance portfolios, exact factor betas from synthetic data, Ledoit–Wolf properties, drawdown and VaR, XIRR, Monte Carlo, corporate-action cleaning and statement matching.
 - `npm test` runs the suite; `npx tsc --noEmit` and `npm run lint` keep types and style clean.
 

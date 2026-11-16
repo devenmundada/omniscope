@@ -187,7 +187,8 @@ export default async function MethodologyPage() {
           ))}
         </ul>
         <p className="mt-6 text-sm">
-          See it on your own portfolio in the <Link href="/risk" className="font-medium text-primary hover:underline">Risk Lab</Link>, or ask the{' '}
+          The <Link href="/evaluation" className="font-medium text-primary hover:underline">Evaluation</Link> page measures the AI and the optimiser
+          against known answers. See it on your own portfolio in the <Link href="/risk" className="font-medium text-primary hover:underline">Risk Lab</Link>, or ask the{' '}
           <Link href="/mentor" className="font-medium text-primary hover:underline">AI Copilot</Link> to explain any number.
         </p>
       </section>
