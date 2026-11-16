@@ -85,7 +85,8 @@ export async function POST(req: NextRequest) {
     messages: await convertToModelMessages(messages),
     tools: buildCopilotTools(snapshot),
     stopWhen: stepCountIs(6),
-    temperature: 0.3,
+    // Low thinking keeps multi-step tool answers well inside the 60 s function limit.
+    providerOptions: { google: { thinkingConfig: { thinkingLevel: 'low' } } },
     onEnd: async (event) => {
       if (!persist || !conversationId) return;
       try {
@@ -110,6 +111,9 @@ export async function POST(req: NextRequest) {
       logger.error('Copilot stream error:', msg);
       if (/quota|rate|429|exhausted/i.test(msg)) {
         return 'The free AI quota is busy right now. Please wait a minute and try again.';
+      }
+      if (/not found|not supported|no longer available|404/i.test(msg)) {
+        return `The AI model "${PRIMARY_MODEL_ID}" is not available to this API key. Set GEMINI_MODEL to a current Gemini model in the deployment settings.`;
       }
       if (/api key|API_KEY|permission|401|403/i.test(msg)) {
         return 'The AI service rejected the API key. Please check GOOGLE_GENERATIVE_AI_API_KEY in the deployment settings.';

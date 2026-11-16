@@ -5,9 +5,13 @@ import { createGoogleGenerativeAI } from '@ai-sdk/google';
  * Google Gemini (free tier) is the default model provider.
  * GOOGLE_GENERATIVE_AI_API_KEY must be set in the server environment.
  * GEMINI_MODEL / GEMINI_FALLBACK_MODEL can override the model IDs without code changes.
+ *
+ * Gemini 2.5 Flash is deprecated and unavailable to new API keys, so the defaults are the
+ * current free-tier models. Gemini 3.6+ ignores temperature/top_p/top_k (and will reject them
+ * in later generations), so callers must not pass sampling parameters.
  */
-export const PRIMARY_MODEL_ID = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
-export const FALLBACK_MODEL_ID = process.env.GEMINI_FALLBACK_MODEL?.trim() || 'gemini-2.5-flash-lite';
+export const PRIMARY_MODEL_ID = process.env.GEMINI_MODEL?.trim() || 'gemini-3.8-flash';
+export const FALLBACK_MODEL_ID = process.env.GEMINI_FALLBACK_MODEL?.trim() || 'gemini-3.5-flash-lite';
 
 export function isAiConfigured(): boolean {
   return Boolean(process.env.GOOGLE_GENERATIVE_AI_API_KEY?.trim());

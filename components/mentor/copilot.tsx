@@ -145,7 +145,13 @@ export function Copilot({
     if (!t || busy) return;
     setInput('');
     await sendMessage({ text: t });
-    router.refresh();
+    // Pin the conversation id in the URL. Without ?c=, the server would mint a new id on refresh,
+    // remount this component with an empty chat and wipe the answer that just streamed in.
+    if (new URLSearchParams(window.location.search).get('c') === conversationId) {
+      router.refresh();
+    } else {
+      router.replace(`/mentor?c=${conversationId}`, { scroll: false });
+    }
   };
 
   const newChat = () => router.push(`/mentor?c=${crypto.randomUUID()}`);

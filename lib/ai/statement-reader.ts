@@ -27,7 +27,6 @@ export async function extractStatement(file: { bytes: Uint8Array; mediaType: str
   const { output, modelId } = await withModelFallback(async (model, id) => {
     const res = await generateText({
       model,
-      temperature: 0,
       output: Output.object({ schema: statementSchema }),
       messages: [{ role: 'user', content }],
     });

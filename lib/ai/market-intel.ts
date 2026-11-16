@@ -238,7 +238,6 @@ export async function getMarketIntelligence(userId: string, s: FinancialSnapshot
       const res = await withModelFallback(async (m, id) => {
         const out = await generateText({
           model: m,
-          temperature: 0.2,
           output: Output.object({ schema: intelSchema }),
           system:
             'You are a financial news analyst for Indian retail investors. Use ONLY the JSON facts and headlines given. ' +
