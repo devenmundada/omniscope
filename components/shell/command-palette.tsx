@@ -92,11 +92,11 @@ export function CommandPalette() {
                 <span>Learning Center</span>
               </Command.Item>
               <Command.Item
-                onSelect={() => runCommand(() => router.push('/reputation'))}
+                onSelect={() => runCommand(() => router.push('/risk'))}
                 className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
               >
                 <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
-                <span>Financial Reputation</span>
+                <span>Risk Lab &amp; Optimiser</span>
               </Command.Item>
             </Command.Group>
 
@@ -118,11 +118,11 @@ export function CommandPalette() {
                 <span>Sign In / Switch Account</span>
               </Command.Item>
               <Command.Item
-                onSelect={() => runCommand(() => router.push('/trust'))}
+                onSelect={() => runCommand(() => router.push('/methodology'))}
                 className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
               >
                 <Lock className="mr-2 h-4 w-4" />
-                <span>Trust & Security Center</span>
+                <span>How it works: data, models &amp; security</span>
               </Command.Item>
             </Command.Group>
           </Command.List>

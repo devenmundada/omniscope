@@ -12,6 +12,7 @@ import {
   Telescope,
   TrendingUp,
   Radar,
+  BookOpenCheck,
 } from 'lucide-react'
 
 export type NavItem = {
@@ -35,4 +36,5 @@ export const navItems: NavItem[] = [
   { href: '/market', label: 'Market Intelligence', question: 'Why does this news matter to me?', icon: TrendingUp },
   { href: '/journey', label: 'Wealth Journey', question: 'How have I grown?', icon: Route },
   { href: '/future', label: 'Future Self', question: 'Where am I heading?', icon: Telescope },
+  { href: '/methodology', label: 'How it works', question: 'Can I trust these numbers?', icon: BookOpenCheck },
 ]

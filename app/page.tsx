@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isSupabaseConfigured } from '@/lib/env';
 import { loadFinancialSnapshot } from '@/lib/ai/snapshot';
@@ -17,6 +18,8 @@ export default async function DashboardPage() {
       const snapshot = await loadFinancialSnapshot(user.id);
       return <RealDashboard userId={user.id} snapshot={snapshot} />;
     }
+    // Visitors who are not signed in get the public landing page.
+    redirect('/welcome');
   }
   return <DemoDashboard />;
 }

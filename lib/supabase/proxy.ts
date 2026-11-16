@@ -14,7 +14,6 @@ const PROTECTED_PREFIXES = [
   '/dna',
   '/journey',
   '/future',
-  '/reputation',
   '/profile',
   '/api/chat',
 ];

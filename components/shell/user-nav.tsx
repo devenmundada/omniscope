@@ -97,16 +97,10 @@ export function UserNav() {
             <UserCog className="size-3.5" /> Financial Profile
           </Link>
           <Link
-            href="/reputation"
+            href="/methodology"
             className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 flex items-center gap-2"
           >
-            <ShieldCheck className="size-3.5" /> Financial Identity
-          </Link>
-          <Link
-            href="/trust"
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 flex items-center gap-2"
-          >
-            <Lock className="size-3.5" /> Trust Center
+            <ShieldCheck className="size-3.5" /> How OmniScope works
           </Link>
           <button
             type="button"
@@ -150,10 +144,10 @@ export function UserNav() {
           <span>Create account</span>
         </Link>
         <Link
-          href="/trust"
+          href="/methodology"
           className="text-[11px] text-muted-foreground hover:text-foreground transition-colors py-1 flex items-center gap-1.5 justify-center mt-1"
         >
-          <Lock className="size-3" /> Trust & Privacy
+          <Lock className="size-3" /> How it works
         </Link>
       </div>
     </div>

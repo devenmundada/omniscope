@@ -63,6 +63,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isActive = (href: string) =>
     href === '/' ? pathname === '/' : pathname.startsWith(href)
 
+  // The public landing page draws its own full-width header and footer.
+  if (pathname === '/welcome') return <>{children}</>
+
   return (
     <div className="min-h-svh bg-background">
       {/* Desktop sidebar */}
