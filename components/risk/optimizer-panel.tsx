@@ -2,7 +2,7 @@
 
 import { useDeferredValue, useMemo, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
-import { efficientFrontier, evaluate, randomPortfolios, rebalanceTrades, type FrontierPoint } from '@/lib/math/optimizer';
+import { efficientFrontier, evaluate, frontierAtVolatility, randomPortfolios, rebalanceTrades, type FrontierPoint } from '@/lib/math/optimizer';
 import type { RiskReport } from '@/lib/db/risk';
 import { formatINRCompact } from '@/lib/format';
 import { cn } from '@/lib/utils';
@@ -32,10 +32,7 @@ export function OptimizerPanel({ report }: { report: RiskReport }) {
     const pts = [...frontier.points.filter((p) => Math.abs(p.volatility - frontier.maxSharpe.volatility) > 1e-4), frontier.maxSharpe];
     return pts.sort((a, b) => a.volatility - b.volatility);
   }, [frontier]);
-  const sameRisk = useMemo(
-    () => path.filter((p) => p.volatility <= current.volatility + 1e-4).reduce<FrontierPoint | null>((best, p) => (!best || p.expectedReturn > best.expectedReturn ? p : best), null) ?? frontier.minVariance,
-    [path, current, frontier]
-  );
+  const sameRisk = useMemo(() => frontierAtVolatility(mu, cov, riskFree, cap, current.volatility), [mu, cov, riskFree, cap, current]);
 
   const [preset, setPreset] = useState<Preset>('maxSharpe');
   const [customIndex, setCustomIndex] = useState(0);
@@ -104,7 +101,11 @@ export function OptimizerPanel({ report }: { report: RiskReport }) {
               type="range"
               min={0}
               max={path.length - 1}
-              value={preset === 'custom' ? customIndex : path.indexOf(target) >= 0 ? path.indexOf(target) : 0}
+              value={
+                preset === 'custom'
+                  ? customIndex
+                  : path.reduce((best, p, i) => (Math.abs(p.volatility - target.volatility) < Math.abs(path[best].volatility - target.volatility) ? i : best), 0)
+              }
               onChange={(e) => {
                 setPreset('custom');
                 setCustomIndex(Number(e.target.value));

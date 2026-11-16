@@ -131,6 +131,28 @@ export function efficientFrontier(mu: number[], cov: Matrix, riskFree: number, c
   return { points, minVariance, maxSharpe: best };
 }
 
+/**
+ * The efficient portfolio with (as nearly as possible) the given volatility: the most expected
+ * return available at that risk. Volatility falls as gamma rises, so bisect on log(gamma).
+ */
+export function frontierAtVolatility(mu: number[], cov: Matrix, riskFree: number, cap: number, targetVol: number): FrontierPoint {
+  const minVar = evaluate(minimumVariance(cov, cap), mu, cov, riskFree);
+  if (targetVol <= minVar.volatility) return minVar;
+  let lo = -3; // small gamma: return-seeking, high volatility
+  let hi = 4; // large gamma: close to minimum variance
+  let best = minVar;
+  for (let k = 0; k < 40; k++) {
+    const mid = (lo + hi) / 2;
+    const p = evaluate(solveMeanVariance(mu, cov, 10 ** mid, cap), mu, cov, riskFree);
+    if (p.volatility > targetVol) lo = mid;
+    else {
+      hi = mid;
+      if (p.expectedReturn > best.expectedReturn) best = p;
+    }
+  }
+  return best;
+}
+
 /** Deterministic PRNG so the random-portfolio cloud is stable between renders. */
 export function mulberry32(seed: number) {
   let a = seed >>> 0;

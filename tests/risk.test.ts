@@ -11,6 +11,8 @@ import {
 } from '@/lib/math/risk';
 import {
   efficientFrontier,
+  evaluate,
+  frontierAtVolatility,
   minimumVariance,
   mulberry32,
   projectCappedSimplex,
@@ -121,6 +123,17 @@ describe('optimizer', () => {
       expect(f.points[i].volatility).toBeGreaterThan(f.points[i - 1].volatility);
       expect(f.points[i].expectedReturn).toBeGreaterThan(f.points[i - 1].expectedReturn);
     }
+  });
+
+  it('finds the efficient portfolio at a given risk, beating any mix with that risk', () => {
+    const mu = [0.12, 0.15, 0.08, 0.07, 0.11];
+    const vol = [0.16, 0.22, 0.14, 0.03, 0.18];
+    const cov = vol.map((a, i) => vol.map((b, j) => (i === j ? a * b : 0.3 * a * b)));
+    const mix = evaluate([0.1, 0.5, 0, 0, 0.4], mu, cov, 0.06);
+    const p = frontierAtVolatility(mu, cov, 0.06, 1, mix.volatility);
+    expect(p.volatility).toBeLessThanOrEqual(mix.volatility + 1e-6);
+    expect(p.volatility).toBeGreaterThan(mix.volatility - 0.002);
+    expect(p.expectedReturn).toBeGreaterThan(mix.expectedReturn);
   });
 
   it('respects the per-asset cap', () => {

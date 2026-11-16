@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { computeGoalProjectionDetails } from '@/lib/math/financial-projections';
 import { simulateGoal } from '@/lib/math/monte-carlo';
 import { getRiskReport, type RiskReport } from '@/lib/db/risk';
-import { efficientFrontier, evaluate, HISTORICAL_SCENARIOS, rebalanceTrades, stressTest } from '@/lib/math/optimizer';
+import { efficientFrontier, evaluate, frontierAtVolatility, HISTORICAL_SCENARIOS, rebalanceTrades, stressTest } from '@/lib/math/optimizer';
 import {
   goalsDigest,
   healthDigest,
@@ -80,12 +80,13 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
         if (!r) return noRisk;
         const { mu, cov, riskFree } = r.optimizer;
         const current = evaluate(r.assets.map((a) => a.weight), mu, cov, riskFree);
-        const f = efficientFrontier(mu, cov, riskFree, (maxWeightPct ?? 35) / 100);
+        const cap = (maxWeightPct ?? 35) / 100;
+        const f = efficientFrontier(mu, cov, riskFree, cap);
         const target =
           objective === 'min_risk'
             ? f.minVariance
             : objective === 'same_risk_more_return'
-              ? [...f.points, f.maxSharpe].filter((p) => p.volatility <= current.volatility + 1e-4).sort((a, b) => b.expectedReturn - a.expectedReturn)[0] ?? f.minVariance
+              ? frontierAtVolatility(mu, cov, riskFree, cap, current.volatility)
               : f.maxSharpe;
         const trades = rebalanceTrades(r.assets.map((a) => a.value), target.weights);
         return {

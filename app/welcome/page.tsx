@@ -4,7 +4,7 @@ import { ArrowRight, Bot, Compass, FileScan, Gauge, HeartPulse, LineChart, Newsp
 import { HeroFrontier } from '@/components/landing/hero-frontier';
 import { ArchitectureDiagram } from '@/components/landing/architecture-diagram';
 import { getPublicStats } from '@/lib/db/public-stats';
-import { efficientFrontier, evaluate, randomPortfolios } from '@/lib/math/optimizer';
+import { efficientFrontier, evaluate, frontierAtVolatility, randomPortfolios } from '@/lib/math/optimizer';
 
 export const metadata = { title: 'OmniScope — See your money the way a risk desk does' };
 export const revalidate = 3600;
@@ -24,9 +24,11 @@ function heroData() {
   const cov = SAMPLE_CORR.map((row, i) => row.map((c, j) => c * SAMPLE_VOL[i] * SAMPLE_VOL[j]));
   const f = efficientFrontier(SAMPLE_MU, cov, 0.06, 1, 28);
   const cloud = randomPortfolios(SAMPLE_MU, cov, 0.06, 260, 11).map((p) => ({ x: p.volatility, y: p.expectedReturn }));
-  const current = evaluate([0.15, 0.45, 0.05, 0.05, 0.3], SAMPLE_MU, cov, 0.06); // equity-heavy, little gold or debt
-  const best = [...f.points].filter((p) => p.volatility <= current.volatility).sort((a, b) => b.expectedReturn - a.expectedReturn)[0] ?? f.maxSharpe;
+  // Mostly large-cap shares plus deposits, no gold: a common Indian retail mix.
+  const current = evaluate([0.7, 0.1, 0, 0.2, 0], SAMPLE_MU, cov, 0.06);
+  const best = frontierAtVolatility(SAMPLE_MU, cov, 0.06, 1, current.volatility);
   return {
+    gap: best.expectedReturn - current.expectedReturn,
     cloud,
     frontier: f.points.map((p) => ({ x: p.volatility, y: p.expectedReturn })),
     current: { x: current.volatility, y: current.expectedReturn },
@@ -112,10 +114,11 @@ export default async function WelcomePage() {
                 <p className="text-sm font-medium">Efficient frontier</p>
                 <p className="text-xs text-muted-foreground">computed live by OmniScope&rsquo;s optimiser</p>
               </div>
-              <HeroFrontier {...hero} />
+              <HeroFrontier cloud={hero.cloud} frontier={hero.frontier} current={hero.current} best={hero.best} />
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                Grey dots are random mixes of five Indian asset classes. The blue curve is the best return possible at each level of risk.
-                Most portfolios sit below it; the Risk Lab shows you how far, and why.
+                Grey dots are random mixes of five Indian asset classes; the blue curve is the best return possible at each level of risk. A
+                typical mix of large-cap shares and deposits (red) gives up about {(hero.gap * 100).toFixed(1)}% a year against the best mix
+                with the same risk (green), using illustrative long-run assumptions. The Risk Lab measures the gap on your real portfolio.
               </p>
             </div>
           </div>
