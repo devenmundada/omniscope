@@ -238,81 +238,57 @@ AI interprets Events
 
 ---
 
+## 📐 Risk Lab
+
+Institutional risk analytics on the user's own holdings, from two years of verified daily prices.
+
+- Annual return (CAGR), volatility, Sharpe and Sortino ratios
+- Worst drawdown with dates, and an "underwater" chart
+- Beta and Jensen's alpha against the Nifty 50
+- Historical and parametric 95% Value-at-Risk and CVaR, in rupees
+- Euler risk contributions: each holding's share of money vs share of risk
+- Correlation heatmap
+- **Markowitz optimiser**: long-only efficient frontier with a per-holding cap, Ledoit–Wolf shrunk covariance and expected returns shrunk towards long-run asset-class returns; max-Sharpe, min-variance and same-risk-more-return portfolios with the trades they imply
+- **Crash tests**: 2008, 2020 and 2022 scenarios (or custom Nifty and gold shocks) applied through each holding's two-factor (Nifty, gold) regression betas, with recovery time
+
+The AI Copilot can run the same engine through three tools: `getRiskReport`, `optimizePortfolio` and `stressTestPortfolio`.
+
+---
+
 # 🚀 Tech Stack
 
-## Frontend
-
-- Next.js 16
-- React 19
-- TypeScript
-- TailwindCSS v4
-- shadcn/ui
-- Framer Motion
-- Recharts
-- React Flow (@xyflow/react)
-
----
-
-## Planned Frontend
-
-- D3.js
-- Nivo
-- TradingView Charts
-- cmdk
-- Mapbox
-
----
-
-## Backend (Upcoming)
-
-- FastAPI
-- PostgreSQL
-- Redis
-- Docker
-- AI SDK
-- OpenAI
-- Account Aggregator Integration
-- Broker APIs
+| Layer | Technology |
+|---|---|
+| App | Next.js 16 (App Router, server components), React 19, TypeScript |
+| UI | Tailwind CSS v4, shadcn/ui, Framer Motion, Recharts, React Flow, cmdk |
+| Data | PostgreSQL on Supabase (Mumbai), Drizzle ORM, transaction pooler |
+| Auth | Supabase Auth, per-user scoping on every personal-data query |
+| AI | Vercel AI SDK v7 with Google Gemini (3.5 Flash-Lite, 3.1 Flash-Lite fallback), tool calling, Zod structured output |
+| Hosting | Vercel (Mumbai region) with a weekday price-sync cron |
+| Tests | Vitest unit tests for every maths engine |
 
 ---
 
 # 🏗️ Architecture
 
 ```
-User
-
-↓
-
-OmniScope Frontend
-
-↓
-
-AI Intelligence Layer
-
-↓
-
-Portfolio Analytics Engine
-
-↓
-
-Market Intelligence
-
-↓
-
-Financial Health Engine
-
-↓
-
-Future Planning Engine
-
-↓
-
-Account Aggregator
-
-↓
-
-Banks • Brokers • Depositories
+Sources                Ingestion                 Storage                 Engines                    AI layer                 User
+NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 10 tools   ──►  Dashboard
+AMFI NAV file          bonus/split cleaning      2-year price history    Monte Carlo goals          grounded answers         Risk Lab
+gold-api + ECB FX      source fallbacks          per-user holdings       Health score, HHI          model fallback           Goals, Health
+Google News RSS        AI statement reader       AI insight cache        Risk, Markowitz, stress    advice guardrails        Copilot chat
 ```
+
+**Price data.** Shares and ETFs are valued at official NSE closing prices (bhavcopy) and mutual funds at AMFI NAVs. Two years of daily history are rebuilt from NSE's archive by `scripts/backfill-nse-history.mts`. NSE does not adjust previous closes for bonuses or splits, so one-day moves beyond 25% that match a standard ratio (1:2, 1:5, 1:10 …) are detected and removed. Gold bonds use an international-gold × USD/INR estimate of the IBJA rate.
+
+The `/methodology` page documents every data source (with live freshness), every formula, how the AI is grounded, security, and known limitations.
+
+---
+
+# 🧪 Quality
+
+- Unit tests check each engine against closed-form results: tangency and minimum-variance portfolios, exact factor betas from synthetic data, Ledoit–Wolf properties, drawdown and VaR, XIRR, Monte Carlo, corporate-action cleaning and statement matching.
+- `npm test` runs the suite; `npx tsc --noEmit` and `npm run lint` keep types and style clean.
 
 ---
 
@@ -346,44 +322,20 @@ Every screen should answer
 
 # 🛣️ Roadmap
 
-## ✅ Phase 1
+## ✅ Built
 
-- Product Vision
-- Design System
-- Dashboard
-- Portfolio
-- AI Mentor
-- Wealth DNA
-- Wealth Journey
-- Future Self
-- Financial Health
-- Goal Intelligence
-- Learning Hub
-- Market Intelligence
+- Dashboard with Today's Financial Story, Portfolio, X-Ray, Financial Health, Goals, Learning Hub, Wealth DNA, Wealth Journey, Future Self, Market Intelligence
+- Supabase authentication and PostgreSQL backend
+- Verified NSE and AMFI pricing with two-year history
+- AI Copilot with tool calling, AI Statement Reader, AI market analyst
+- Risk Lab: risk metrics, Markowitz optimiser, crash tests
+- Public landing page and methodology page, command palette
 
----
+## 🚧 Next
 
-## 🚧 Phase 2
-
-- Today's Financial Story
-- Financial Reputation
-- Trust Center
-- Universal Search
-- Command Palette
-- Portfolio X-Ray 3.0
-
----
-
-## 🚧 Phase 3
-
-Backend
-
-- Authentication
-- AI Backend
-- PostgreSQL
-- Broker Integration
-- Account Aggregator
-- Portfolio Analytics Engine
+- Capital-gains tax estimates and tax-loss harvesting (needs purchase dates)
+- Account Aggregator and broker integrations
+- Price alerts and weekly email reports
 
 ---
 
