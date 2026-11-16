@@ -106,7 +106,7 @@ export function checkPriceStaleness(
     return {
       isStale: ageHours > 120,
       ageHours,
-      displayStatus: source === 'GOLD_REFERENCE_ESTIMATE' ? 'Gold reference (COMEX × USD/INR + duty)' : 'IBJA Gold Benchmark',
+      displayStatus: source === 'GOLD_REFERENCE_ESTIMATE' ? 'Gold reference (intl. gold × USD/INR + duty)' : 'IBJA Gold Benchmark',
       badgeTone: 'default',
     };
   }
