@@ -253,6 +253,19 @@ Institutional risk analytics on the user's own holdings, from two years of verif
 
 The AI Copilot can run the same engine through three tools: `getRiskReport`, `optimizePortfolio` and `stressTestPortfolio`.
 
+## 🎯 Goal-Based Optimiser
+
+Markowitz finds the most return for each level of risk; a goal needs enough return, reliably, by a deadline. For every portfolio on the efficient frontier, each goal is simulated by Monte Carlo and the mix with the highest probability of success is chosen.
+
+- Probability-versus-risk curves per goal: near goals peak at moderate risk, distant goals favour growth
+- Best mix per goal, and one mix for all goals (highest average or protect the weakest goal) with the trades it implies
+- Return each goal needs, and the SIP for a 70/80/90% chance with the best mix
+- Goal projections everywhere now use the same risk model (shrunk returns, Ledoit–Wolf covariance of the actual holdings)
+
+The Copilot answers through the `optimizeForGoals` tool.
+
+---
+
 ## 🧾 Tax Centre
 
 Capital-gains tax for Indian investors under the rules in force since 23 July 2024.
@@ -287,7 +300,7 @@ The Copilot answers tax questions through the `getTaxEstimate` tool.
 
 ```
 Sources                Ingestion                 Storage                 Engines                    AI layer                 User
-NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 11 tools   ──►  Dashboard
+NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 12 tools   ──►  Dashboard
 AMFI NAV file          bonus/split cleaning      2-year price history    Monte Carlo goals          grounded answers         Risk Lab
 gold-api + ECB FX      source fallbacks          per-user holdings       Health score, HHI          model fallback           Goals, Health
 Google News RSS        AI statement reader       AI insight cache        Risk, Markowitz, stress    advice guardrails        Copilot chat

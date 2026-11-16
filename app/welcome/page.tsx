@@ -43,7 +43,7 @@ const features: Array<{ icon: LucideIcon; title: string; body: string; href: str
   { icon: Compass, title: 'Portfolio optimiser', body: 'A Markowitz efficient frontier over your own holdings with shrunk covariance and position caps: see the mix that earns more for the same risk.', href: '/risk' },
   { icon: ReceiptIndianRupee, title: 'Capital-gains tax centre', body: 'Tax if you sold today under the 2024 rules, days until each holding turns long-term, and how to book ₹1.25 lakh of gains tax-free each year.', href: '/tax' },
   { icon: Target, title: 'Goals by Monte Carlo', body: '10,000 simulated market paths per goal give the real probability of reaching it, and what an extra SIP would change.', href: '/goals' },
-  { icon: Bot, title: 'AI Copilot', body: 'Ask in plain English. The Copilot answers by calling eleven tools on your verified data, so every number it quotes comes from a calculation.', href: '/mentor' },
+  { icon: Bot, title: 'AI Copilot', body: 'Ask in plain English. The Copilot answers by calling twelve tools on your verified data, so every number it quotes comes from a calculation.', href: '/mentor' },
   { icon: HeartPulse, title: 'Financial health score', body: 'Emergency fund, savings rate, diversification, insurance and goal progress, weighted into one score with the next best fix.', href: '/health' },
   { icon: Newspaper, title: 'Market news, explained', body: 'Today’s headlines for the shares and funds you own, with what happened, why, and whether it matters to you.', href: '/market' },
 ];
