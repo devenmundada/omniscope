@@ -87,6 +87,7 @@ export function RealDashboard({ userId, snapshot }: { userId: string; snapshot: 
                       <span className={'tnum font-medium ' + (ps.totalUnrealizedGain >= 0 ? 'text-success' : 'text-danger')}>
                         {formatINRCompact(ps.totalUnrealizedGain)} {ps.totalUnrealizedGain >= 0 ? 'gained' : 'down'}
                       </span>
+                      {!ps.isFullyPriced && <> on {formatINRCompact(ps.pricedInvested)} priced</>}
                     </>
                   )}
                   {ps.unpricedHoldingCount > 0 && (

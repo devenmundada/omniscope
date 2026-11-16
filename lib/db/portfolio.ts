@@ -44,7 +44,10 @@ export interface UserHoldingView {
 
 export interface PortfolioSummaryStats {
   totalInvested: number;
+  /** Cost basis of the holdings that have a verified price. Gain and gain % are measured against this. */
+  pricedInvested: number;
   totalCurrentValue: number | null;
+  /** Verified value minus the cost of the same priced holdings. Unpriced holdings are left out, not counted as losses. */
   totalUnrealizedGain: number | null;
   totalUnrealizedGainPct: number | null;
   holdingCount: number;
@@ -281,6 +284,7 @@ export async function getUserHoldings(userId: string): Promise<UserHoldingView[]
  */
 export function calculatePortfolioSummary(holdingsList: UserHoldingView[]): PortfolioSummaryStats {
   let totalInvested = 0;
+  let pricedInvested = 0;
   let sumCurrentValue = 0;
   let pricedHoldingCount = 0;
   let latestTimestamp: Date | null = null;
@@ -299,6 +303,7 @@ export function calculatePortfolioSummary(holdingsList: UserHoldingView[]): Port
 
     if (h.currentValue != null) {
       pricedHoldingCount++;
+      pricedInvested += h.investedAmount;
       sumCurrentValue += h.currentValue;
       assetClassBreakdown[h.assetClass].current =
         (assetClassBreakdown[h.assetClass].current || 0) + h.currentValue;
@@ -320,12 +325,14 @@ export function calculatePortfolioSummary(holdingsList: UserHoldingView[]): Port
 
   if (hasAnyPricedHoldings) {
     totalCurrentValue = sumCurrentValue;
-    totalUnrealizedGain = totalCurrentValue - totalInvested;
-    totalUnrealizedGainPct = totalInvested > 0 ? (totalUnrealizedGain / totalInvested) * 100 : 0;
+    // Compare like with like: an unpriced holding has no value yet, so its cost must not count as a loss.
+    totalUnrealizedGain = totalCurrentValue - pricedInvested;
+    totalUnrealizedGainPct = pricedInvested > 0 ? (totalUnrealizedGain / pricedInvested) * 100 : 0;
   }
 
   return {
     totalInvested,
+    pricedInvested,
     totalCurrentValue,
     totalUnrealizedGain,
     totalUnrealizedGainPct,

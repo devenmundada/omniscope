@@ -38,6 +38,8 @@ export function portfolioOverview(s: FinancialSnapshot) {
     accountsCount: ps.accountCount,
     totalInvestedINR: r0(ps.totalInvested),
     verifiedMarketValueINR: r0(ps.totalCurrentValue),
+    pricedCostBasisINR: r0(ps.pricedInvested),
+    /** Gain on the priced holdings only: verifiedMarketValueINR minus pricedCostBasisINR. */
     unrealisedGainINR: r0(ps.totalUnrealizedGain),
     unrealisedGainPct: r1(ps.totalUnrealizedGainPct),
     pricedHoldings: ps.pricedHoldingCount,

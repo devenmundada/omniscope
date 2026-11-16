@@ -166,7 +166,9 @@ export function computeJourney(s: FinancialSnapshot): JourneyMilestone[] {
     achievement: `${ps.holdingCount} holdings across ${ps.accountCount} account${ps.accountCount === 1 ? '' : 's'}`,
     story:
       ps.totalCurrentValue != null
-        ? `Verified value ${inr(ps.totalCurrentValue)} against ${inr(ps.totalInvested)} invested.`
+        ? ps.isFullyPriced
+          ? `Verified value ${inr(ps.totalCurrentValue)} against ${inr(ps.totalInvested)} invested.`
+          : `Verified value ${inr(ps.totalCurrentValue)} against ${inr(ps.pricedInvested)} invested in the ${ps.pricedHoldingCount} priced holdings.`
         : `${inr(ps.totalInvested)} invested; prices are syncing.`,
     financialImpact:
       s.performance?.xirrPct != null ? `XIRR ${s.performance.xirrPct.toFixed(1)}% a year` : 'Add purchase dates to see your XIRR',

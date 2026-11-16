@@ -55,11 +55,14 @@ export default async function PortfolioPage() {
               summary.totalUnrealizedGainPct ?? 0
             ).toFixed(2)}%)`
           : '';
+      const valuedText = summary.isFullyPriced
+        ? `currently valued at ${formatINRCompact(summary.totalCurrentValue)}`
+        : `of which ${summary.pricedHoldingCount} priced positions (${formatINRCompact(
+            summary.pricedInvested
+          )} cost) are valued at ${formatINRCompact(summary.totalCurrentValue)}`;
       mentorContent = `You have ${holdings.length} active positions totaling ${formatINRCompact(
         summary.totalInvested
-      )} in cost basis, currently valued at ${formatINRCompact(
-        summary.totalCurrentValue
-      )} (${gainText} unrealized P&L) across ${accounts.length} ${
+      )} in cost basis, ${valuedText} (${gainText} unrealized P&L) across ${accounts.length} ${
         accounts.length === 1 ? 'account' : 'accounts'
       }. Valuations are verified against official AMFI NAVs and closing feeds.`;
     } else {

@@ -213,6 +213,11 @@ export function RealHoldingsView({
               )}
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
+              {summary.hasAnyPricedHoldings && !summary.isFullyPriced && (
+                <>
+                  On the {summary.pricedHoldingCount} priced holdings ({formatINRCompact(summary.pricedInvested)} cost).{' '}
+                </>
+              )}
               {summary.latestPriceTimestamp ? (
                 <>
                   Latest quote as of{' '}
