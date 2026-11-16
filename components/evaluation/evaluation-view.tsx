@@ -45,18 +45,23 @@ export function EvaluationView(props: EvaluationProps) {
     else setStatements({});
     for (const id of ids) {
       setCurrent(id);
-      try {
-        const res = await fetch(`/api/eval/${suite}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(suite === 'copilot' ? { runId, questionId: id } : { runId, fixtureId: id }),
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
-        if (suite === 'copilot') setCopilot((c) => ({ ...c, [id]: json }));
-        else setStatements((s) => ({ ...s, [id]: json }));
-      } catch (err) {
-        setRunError(`${id}: ${err instanceof Error ? err.message : 'request failed'}`);
+      // One retry if the network drops or the AI provider is briefly unavailable.
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          const res = await fetch(`/api/eval/${suite}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(suite === 'copilot' ? { runId, questionId: id } : { runId, fixtureId: id }),
+          });
+          const json = await res.json();
+          if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+          if (suite === 'copilot') setCopilot((c) => ({ ...c, [id]: json }));
+          else setStatements((s) => ({ ...s, [id]: json }));
+          if (!json.error) break;
+        } catch (err) {
+          setRunError(`${id}: ${err instanceof Error ? err.message : 'request failed'}`);
+        }
+        await sleep(6000);
       }
       // Stay well inside the free Gemini rate limit.
       await sleep(suite === 'copilot' ? 2500 : 1500);
@@ -69,14 +74,17 @@ export function EvaluationView(props: EvaluationProps) {
   }
 
   // ---------- Copilot aggregates ----------
-  const cr = props.questions.map((q) => copilot[q.id]).filter(Boolean) as QuestionResult[];
+  const all = props.questions.map((q) => copilot[q.id]).filter(Boolean) as QuestionResult[];
+  // Accuracy is measured on answered questions; provider outages are reported separately.
+  const cr = all.filter((r) => !r.error);
+  const outages = all.filter((r) => r.error);
   const facts = cr.flatMap((r) => r.facts);
   const toolRows = cr.filter((r) => r.toolCorrect != null);
   const guard = cr.filter((r) => r.category === 'Guardrail');
   const lat = latencyStats(cr.filter((r) => !r.error).map((r) => r.latencyMs));
   const categories = [...new Set(props.questions.map((q) => q.category))];
   const copilotMd = [
-    `Copilot benchmark (${cr.length} questions, model ${cr[0]?.model ?? 'n/a'}${copilotAt ? `, run ${when(copilotAt)}` : ''})`,
+    `Copilot benchmark (${cr.length} of ${props.questions.length} questions answered, model ${cr[0]?.model ?? 'n/a'} with fallback${copilotAt ? `, run ${when(copilotAt)}` : ''})`,
     '',
     '| Category | Questions | Passed | Numeric facts correct | Right tool called |',
     '|---|---|---|---|---|',
@@ -88,7 +96,7 @@ export function EvaluationView(props: EvaluationProps) {
     }),
     `| **All** | ${cr.length} | ${cr.filter((r) => r.passed).length} | ${facts.filter((f) => f.passed).length}/${facts.length} | ${toolRows.filter((r) => r.toolCorrect).length}/${toolRows.length} |`,
     '',
-    `Latency (successful answers): median ${secs(lat.median)}, 95th percentile ${secs(lat.p95)}. Errors: ${cr.filter((r) => r.error).length}.`,
+    `Latency (answered questions): median ${secs(lat.median)}, 95th percentile ${secs(lat.p95)}. Provider errors (not counted above): ${outages.length}.`,
   ].join('\n');
 
   // ---------- Statement aggregates ----------
@@ -128,7 +136,7 @@ export function EvaluationView(props: EvaluationProps) {
         <Kpi icon={<Bot className="size-4" />} label="Copilot numeric accuracy" value={pct(facts.filter((f) => f.passed).length, facts.length)} hint={`${facts.filter((f) => f.passed).length} of ${facts.length} figures matched the engines`} />
         <Kpi icon={<CheckCircle2 className="size-4" />} label="Right tool called" value={pct(toolRows.filter((r) => r.toolCorrect).length, toolRows.length)} hint={`Guardrails passed: ${guard.filter((g) => g.passed).length}/${guard.length}`} />
         <Kpi icon={<FileScan className="size-4" />} label="Statement fields correct" value={pct(allCorrect, allTotal)} hint={`${sum((r) => r.score!.matched)} of ${sum((r) => r.score!.truthCount)} holdings found`} />
-        <Kpi icon={<Timer className="size-4" />} label="Copilot median answer" value={cr.length ? secs(lat.median) : '—'} hint={cr.length ? `95th percentile ${secs(lat.p95)}` : 'Run the benchmark'} />
+        <Kpi icon={<Timer className="size-4" />} label="Copilot median answer" value={cr.length ? secs(lat.median) : '—'} hint={cr.length ? `95th percentile ${secs(lat.p95)} · ${outages.length} provider error${outages.length === 1 ? '' : 's'}` : 'Run the benchmark'} />
       </div>
 
       {runError && <p className="rounded-lg border border-danger/30 bg-danger-muted/30 px-4 py-2 text-sm text-danger">Last error: {runError}</p>}
@@ -138,7 +146,7 @@ export function EvaluationView(props: EvaluationProps) {
         title="AI Copilot benchmark"
         subtitle={`${props.questions.length} questions across ${categories.length} areas. Expected figures come from calling the same tools the Copilot uses; an answer passes only if every expected figure appears (normal rounding allowed) and every text check holds.`}
         action={
-          <RunButton running={running === 'copilot'} disabled={running != null} onClick={() => runSuite('copilot')} label={`Run ${props.questions.length} questions`} progress={running === 'copilot' ? `${cr.length}/${props.questions.length}` : null} />
+          <RunButton running={running === 'copilot'} disabled={running != null} onClick={() => runSuite('copilot')} label={`Run ${props.questions.length} questions`} progress={running === 'copilot' ? `${all.length}/${props.questions.length}` : null} />
         }
         meta={copilotAt ? `Last run ${when(copilotAt)}` : 'Not run yet'}
       >

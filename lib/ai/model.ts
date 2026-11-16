@@ -1,6 +1,6 @@
 import 'server-only';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { APICallError, RetryError } from 'ai';
+import { APICallError, RetryError, wrapLanguageModel } from 'ai';
 import { logger } from '@/lib/logger';
 
 /**
@@ -40,6 +40,47 @@ export const AI_MAX_RETRIES = 0;
 
 /** Per-model time budget, so a slow primary still leaves the fallback time to answer within 60 s. */
 export const AI_ATTEMPT_TIMEOUT = { totalMs: 25_000 } as const;
+
+/** Rate limits and server-side failures ("high demand", 5xx) are worth one attempt on the other model. */
+export function isRetryableAiError(err: unknown): boolean {
+  const status = aiErrorStatus(err);
+  const e = rootAiError(err);
+  const msg = e instanceof Error ? e.message : String(e);
+  return status === 429 || (status != null && status >= 500) || /overloaded|unavailable|high demand|quota|exhausted/i.test(msg);
+}
+
+/**
+ * The primary model, wrapped so that a request Google rejects before any output (429, 5xx,
+ * "high demand") is sent to the fallback model instead. Works per call, so every step of a
+ * multi-step tool-calling answer gets its own fallback. Used by the streaming Copilot, which cannot
+ * restart a stream after it has begun.
+ */
+export function resilientModel() {
+  const fallback = fallbackModel();
+  return wrapLanguageModel({
+    model: primaryModel(),
+    middleware: {
+      wrapGenerate: async ({ doGenerate, params }) => {
+        try {
+          return await doGenerate();
+        } catch (err) {
+          if (FALLBACK_MODEL_ID === PRIMARY_MODEL_ID || !isRetryableAiError(err)) throw err;
+          logger.warn(`AI: ${PRIMARY_MODEL_ID} unavailable (status ${aiErrorStatus(err) ?? 'n/a'}); answering with ${FALLBACK_MODEL_ID}`);
+          return fallback.doGenerate(params);
+        }
+      },
+      wrapStream: async ({ doStream, params }) => {
+        try {
+          return await doStream();
+        } catch (err) {
+          if (FALLBACK_MODEL_ID === PRIMARY_MODEL_ID || !isRetryableAiError(err)) throw err;
+          logger.warn(`AI: ${PRIMARY_MODEL_ID} unavailable (status ${aiErrorStatus(err) ?? 'n/a'}); streaming with ${FALLBACK_MODEL_ID}`);
+          return fallback.doStream(params);
+        }
+      },
+    },
+  });
+}
 
 /** Runs an AI call with the primary model, retrying once on the lighter fallback model (e.g. quota limits, slowness). */
 export async function withModelFallback<T>(

@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { convertToModelMessages, stepCountIs, streamText, type UIMessage } from 'ai';
 import { createClient } from '@/lib/supabase/server';
 import { isSupabaseConfigured } from '@/lib/env';
-import { AI_MAX_RETRIES, AI_NOT_CONFIGURED_MESSAGE, describeAiError, isAiConfigured, PRIMARY_MODEL_ID, primaryModel } from '@/lib/ai/model';
+import { AI_MAX_RETRIES, AI_NOT_CONFIGURED_MESSAGE, describeAiError, isAiConfigured, PRIMARY_MODEL_ID, resilientModel } from '@/lib/ai/model';
 import { loadFinancialSnapshot } from '@/lib/ai/snapshot';
 import { buildCopilotTools } from '@/lib/ai/copilot-tools';
 import { copilotSystemPrompt } from '@/lib/ai/copilot-prompt';
@@ -77,7 +77,7 @@ export async function POST(req: NextRequest) {
     null;
 
   const result = streamText({
-    model: primaryModel(),
+    model: resilientModel(),
     system: copilotSystemPrompt({
       userName,
       today: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }),

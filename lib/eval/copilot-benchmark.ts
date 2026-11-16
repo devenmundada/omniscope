@@ -2,7 +2,7 @@ import 'server-only';
 import { generateText, stepCountIs } from 'ai';
 import { buildCopilotTools } from '@/lib/ai/copilot-tools';
 import { copilotSystemPrompt } from '@/lib/ai/copilot-prompt';
-import { AI_MAX_RETRIES, PRIMARY_MODEL_ID, aiErrorStatus, primaryModel } from '@/lib/ai/model';
+import { AI_MAX_RETRIES, PRIMARY_MODEL_ID, aiErrorStatus, resilientModel } from '@/lib/ai/model';
 import type { FinancialSnapshot } from '@/lib/ai/snapshot';
 import { checkPasses, factPresent, type ExpectedFact, type TextCheck } from './grading';
 
@@ -304,7 +304,7 @@ export async function runQuestion(snapshot: FinancialSnapshot, userName: string 
   let error: string | null = null;
   try {
     const res = await generateText({
-      model: primaryModel(),
+      model: resilientModel(),
       system: copilotSystemPrompt({
         userName,
         today: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }),
