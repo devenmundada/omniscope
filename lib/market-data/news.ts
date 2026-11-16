@@ -69,3 +69,15 @@ export function newsQueryFor(h: { name: string; assetClass: string }): string {
   if (h.assetClass === 'ETFs') return /gold/i.test(base) ? 'gold price India' : /bank/i.test(base) ? 'Bank Nifty' : 'Nifty 50';
   return `"${base}" share`;
 }
+
+const NEWS_ID = String.raw`\b(?:m|h\d+)-\d+\b`;
+const NEWS_ID_REF = new RegExp(
+  String.raw`\s*[(\[]?(?:(?:as\s+)?(?:mentioned|reported|noted|cited)\s+in\s+|(?:see\s+)?(?:headlines?|news)\s+)?` +
+    NEWS_ID + String.raw`(?:\s*(?:,|and|&)\s*` + NEWS_ID + String.raw`)*[)\]]?`,
+  'gi'
+);
+
+/** Removes headline ids (m-4, h0-2) that a model wrote into prose; ids belong only in citation fields. */
+export function stripNewsIds(text: string): string {
+  return text.replace(NEWS_ID_REF, '').replace(/\s+([.,;:!?])/g, '$1').replace(/\s{2,}/g, ' ').trim();
+}

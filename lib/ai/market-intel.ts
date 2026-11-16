@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { and, eq, gt } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { aiInsightCache } from '@/lib/db/schema';
-import { fetchNews, newsQueryFor, type NewsItem } from '@/lib/market-data/news';
+import { fetchNews, newsQueryFor, stripNewsIds, type NewsItem } from '@/lib/market-data/news';
 import { istDate } from '@/lib/market-data/history';
 import { AI_MAX_RETRIES, isAiConfigured, withModelFallback } from './model';
 import type { FinancialSnapshot } from './snapshot';
@@ -243,7 +243,8 @@ export async function getMarketIntelligence(userId: string, s: FinancialSnapshot
           output: Output.object({ schema: intelSchema }),
           system:
             'You are a financial news analyst for Indian retail investors. Use ONLY the JSON facts and headlines given. ' +
-            'Never invent numbers, events or prices. Cite headlines only by their given ids. Write in plain English, ' +
+            'Never invent numbers, events or prices. Cite headlines only by putting their ids in citedNewsIds and newsIds; ' +
+            'never write an id such as m-4 or h0-2 inside any sentence. Write in plain English, ' +
             'use ₹ and Indian digit grouping, avoid jargon, and never give buy/sell recommendations (SEBI guardrail). ' +
             'If no headline explains a move, say the move looks like normal market fluctuation.',
           prompt: JSON.stringify(input),
@@ -254,8 +255,15 @@ export async function getMarketIntelligence(userId: string, s: FinancialSnapshot
       if (o) {
         model = res.id;
         aiGenerated = true;
+        const clean = (t: string) => stripNewsIds(t);
         story = {
           ...o.story,
+          headline: clean(o.story.headline),
+          whatHappened: clean(o.story.whatHappened),
+          whyItHappened: clean(o.story.whyItHappened),
+          doesItMatter: clean(o.story.doesItMatter),
+          action: clean(o.story.action),
+          educationalTakeaway: clean(o.story.educationalTakeaway),
           sources: o.story.citedNewsIds.map((id) => allNews.get(id)).filter((n): n is NewsItem => !!n).slice(0, 4),
         };
         for (const h of holdings) {
@@ -263,7 +271,7 @@ export async function getMarketIntelligence(userId: string, s: FinancialSnapshot
           if (!a) continue;
           h.sentiment = a.sentiment;
           h.impact = a.impact;
-          h.summary = a.summary;
+          h.summary = clean(a.summary);
           const cited = a.newsIds.map((id) => allNews.get(id)).filter((n): n is NewsItem => !!n);
           if (cited.length) h.news = [...cited, ...h.news.filter((n) => !cited.includes(n))].slice(0, 4);
         }
