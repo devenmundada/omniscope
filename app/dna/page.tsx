@@ -2,10 +2,31 @@ import { PageHeader, LabelValue, InsightBlock } from '@/components/omni/primitiv
 import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition'
 import { Card } from '@/components/ui/card'
 import { TraitRadar } from '@/components/omni/trait-radar'
-import { wealthDnaData } from '@/lib/data'
+import { wealthDnaData, type WealthDna } from '@/lib/data'
+import { createClient } from '@/lib/supabase/server'
+import { isSupabaseConfigured } from '@/lib/env'
+import { loadFinancialSnapshot } from '@/lib/ai/snapshot'
+import { computeWealthDna } from '@/lib/math/wealth-dna'
 import { Dna, Target, Brain, Shield, Workflow, MessageSquare } from 'lucide-react'
 
-export default function WealthDnaPage() {
+export const dynamic = 'force-dynamic'
+
+async function resolveDna(): Promise<{ dna: WealthDna; real: boolean }> {
+  if (isSupabaseConfigured()) {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (user) {
+      const s = await loadFinancialSnapshot(user.id)
+      if (s.summary.holdings.length > 0) return { dna: computeWealthDna(s), real: true }
+    }
+  }
+  return { dna: wealthDnaData, real: false }
+}
+
+export default async function WealthDnaPage() {
+  const { dna, real } = await resolveDna()
   const {
     archetype,
     riskStyle,
@@ -18,7 +39,7 @@ export default function WealthDnaPage() {
     growthAreas,
     monthlyEvolution,
     aiReflection,
-  } = wealthDnaData
+  } = dna
 
   return (
     <StaggerContainer>
@@ -28,6 +49,19 @@ export default function WealthDnaPage() {
           title="Who am I as an investor?"
           question="Your unique financial personality, built from every decision you've ever made."
         />
+      </StaggerItem>
+      <StaggerItem className="mb-6">
+        <p
+          className={
+            real
+              ? 'rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm text-foreground'
+              : 'rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200'
+          }
+        >
+          {real
+            ? 'Computed from your portfolio: consistency = goal SIPs ÷ monthly surplus; patience = average holding age (3 years = 100); discipline = emergency-fund months (6 = 100); conviction = largest position weight × 2; adaptability = asset classes held (5 = 100).'
+            : 'Sample data. Sign in and add holdings to compute your own Wealth DNA.'}
+        </p>
       </StaggerItem>
 
       <div className="grid gap-6 lg:grid-cols-3 mb-6">
