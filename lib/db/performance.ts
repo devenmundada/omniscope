@@ -117,30 +117,38 @@ export async function getPortfolioPerformance(holdings: UserHoldingView[]): Prom
   const benchmarkReturnPct =
     first && last && first.benchmark && last.benchmark ? ((last.benchmark - first.benchmark) / first.benchmark) * 100 : null;
 
-  // 3. Asset-class statistics (annualised mean and volatility of daily log returns over up to 3 years)
+  // 3. Asset-class statistics from an equal-weight daily basket of each class's holdings over up to
+  // 3 years. A basket (not pooled returns) keeps the diversification inside the class.
   const since3y = new Date(now.getTime() - 3 * 365 * 86400000).toISOString().slice(0, 10);
   const longHist = await getHistory(ids, since3y);
-  const byClass = new Map<string, number[]>();
+  const byClass = new Map<string, Map<string, number[]>>(); // class -> date -> instrument returns
   for (const h of priced) {
     const pts = longHist.get(h.instrumentId) ?? [];
-    const rets: number[] = [];
+    const dates = byClass.get(h.assetClass) ?? new Map<string, number[]>();
     for (let i = 1; i < pts.length; i++) {
-      if (pts[i - 1].close > 0 && pts[i].close > 0) rets.push(Math.log(pts[i].close / pts[i - 1].close));
+      if (pts[i - 1].close > 0 && pts[i].close > 0) {
+        const arr = dates.get(pts[i].date) ?? [];
+        arr.push(Math.log(pts[i].close / pts[i - 1].close));
+        dates.set(pts[i].date, arr);
+      }
     }
-    const arr = byClass.get(h.assetClass) ?? [];
-    arr.push(...rets);
-    byClass.set(h.assetClass, arr);
+    byClass.set(h.assetClass, dates);
   }
   const assetClassStats: AssetClassStats[] = [...new Set(priced.map((h) => h.assetClass))].map((ac) => {
-    const rets = byClass.get(ac) ?? [];
+    const rets = [...(byClass.get(ac) ?? new Map<string, number[]>()).entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([, day]) => day.reduce((a, b) => a + b, 0) / day.length);
     const def = defaultStatsFor(ac);
     if (rets.length < 120) return { assetClass: ac, annualReturn: def.r, annualVolatility: def.v, observations: rets.length };
     const mean = rets.reduce((a, b) => a + b, 0) / rets.length;
     const variance = rets.reduce((a, b) => a + (b - mean) ** 2, 0) / (rets.length - 1);
     const vol = Math.sqrt(variance * 252);
-    // Shrink the sample mean toward the long-run default to avoid extrapolating a short boom or bust
+    // Shrink the sample mean toward the long-run default, giving history the weight of its length
+    // against a five-year prior (same rule as the Risk Lab), so a short boom or bust is not extrapolated.
+    const years = rets.length / 252;
+    const historyWeight = years / (years + 5);
     const sampleAnnual = Math.exp(mean * 252) - 1;
-    const annualReturn = 0.5 * sampleAnnual + 0.5 * def.r;
+    const annualReturn = historyWeight * sampleAnnual + (1 - historyWeight) * def.r;
     return { assetClass: ac, annualReturn, annualVolatility: Math.max(0.01, vol), observations: rets.length };
   });
 
