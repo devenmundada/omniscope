@@ -117,12 +117,12 @@ function GoalOptimizerInner({ data }: { data: GoalOptimizerData }) {
               <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" />
               <XAxis type="number" dataKey="vol" domain={['dataMin', 'dataMax']} unit="%" tickLine={false} axisLine={false} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} label={{ value: 'Risk (annual volatility)', position: 'insideBottom', offset: -12, fill: 'var(--muted-foreground)', fontSize: 12 }} />
               <YAxis domain={[0, 100]} unit="%" tickLine={false} axisLine={false} width={44} tick={{ fill: 'var(--muted-foreground)', fontSize: 12 }} />
-              <Tooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} labelFormatter={(v) => `Risk ${v}%`} formatter={(v, name) => [`${v}%`, name === 'average' ? 'Average of goals' : data.goals.find((g) => g.id === name)?.name ?? String(name)]} />
-              <Legend formatter={(v) => (v === 'average' ? 'Average of goals' : data.goals.find((g) => g.id === v)?.name ?? v)} wrapperStyle={{ fontSize: 12 }} />
+              <Tooltip contentStyle={{ background: 'var(--popover)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12 }} labelFormatter={(v) => `Risk ${v}%`} formatter={(v, name) => [`${v}%`, String(name)]} />
+              <Legend wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />
               {data.goals.map((g, i) => (
-                <Line key={g.id} type="monotone" dataKey={g.id} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={false} isAnimationActive={false} />
+                <Line key={g.id} name={g.name} type="monotone" dataKey={g.id} stroke={COLORS[i % COLORS.length]} strokeWidth={2} dot={false} isAnimationActive={false} />
               ))}
-              {data.goals.length > 1 && <Line type="monotone" dataKey="average" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
+              {data.goals.length > 1 && <Line name="Average of goals" type="monotone" dataKey="average" stroke="var(--muted-foreground)" strokeDasharray="5 4" strokeWidth={1.5} dot={false} isAnimationActive={false} />}
               {details.map((d, i) => (
                 <ReferenceDot key={`now-${d.goal.id}`} x={Math.round(current.volatility * 1000) / 10} y={Math.round(d.nowP * 1000) / 10} r={5} fill={COLORS[i % COLORS.length]} stroke="var(--background)" shape={(props: { cx?: number; cy?: number }) => <rect x={(props.cx ?? 0) - 5} y={(props.cy ?? 0) - 5} width={10} height={10} transform={`rotate(45 ${props.cx} ${props.cy})`} fill={COLORS[i % COLORS.length]} stroke="var(--background)" />} />
               ))}
