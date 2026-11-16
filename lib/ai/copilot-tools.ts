@@ -3,6 +3,8 @@ import { tool } from 'ai';
 import { z } from 'zod';
 import { computeGoalProjectionDetails } from '@/lib/math/financial-projections';
 import { simulateGoal } from '@/lib/math/monte-carlo';
+import { getRiskReport, type RiskReport } from '@/lib/db/risk';
+import { efficientFrontier, evaluate, HISTORICAL_SCENARIOS, rebalanceTrades, stressTest } from '@/lib/math/optimizer';
 import {
   goalsDigest,
   healthDigest,
@@ -17,8 +19,121 @@ import {
  * snapshot (already scoped by user id), so the model never sees another user's data and never
  * invents numbers: figures in answers come from these tool results.
  */
+const pct1 = (x: number | null | undefined) => (x == null || !Number.isFinite(x) ? null : Math.round(x * 1000) / 10);
+
 export function buildCopilotTools(snapshot: FinancialSnapshot) {
+  // The risk report needs two years of prices, so load it once, only if a risk tool is called.
+  let riskPromise: Promise<RiskReport | null> | null = null;
+  const risk = () => (riskPromise ??= getRiskReport(snapshot.summary.userId).catch(() => null));
+  const noRisk = { error: 'Not enough verified price history to analyse risk yet. Add holdings and sync prices on the Portfolio page.' };
+
   return {
+    getRiskReport: tool({
+      description:
+        'Risk analysis from two years of verified daily prices: annual return (CAGR), volatility, Sharpe, Sortino, worst drawdown with dates, beta and alpha vs Nifty 50, 1-day and 1-month 95% Value-at-Risk and CVaR in rupees, diversification benefit, and each holding\u2019s share of money vs share of risk. Use for any question about risk, volatility, drawdowns, VaR or "how risky is my portfolio".',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const r = await risk();
+        if (!r) return noRisk;
+        const m = r.metrics;
+        const standalone = r.assets.reduce((s, a) => s + a.weight * a.annualVolatility, 0);
+        return {
+          window: `${m.fromDate} to ${m.toDate} (${m.observations} trading days)`,
+          analysedValueINR: Math.round(r.analysedValue),
+          annualReturnPct: pct1(m.annualReturn),
+          volatilityPct: pct1(m.annualVolatility),
+          sharpe: Math.round(m.sharpe * 100) / 100,
+          sortino: Math.round(m.sortino * 100) / 100,
+          maxDrawdownPct: pct1(m.maxDrawdown),
+          maxDrawdownPeriod: `${m.maxDrawdownFrom} to ${m.maxDrawdownTo}`,
+          betaToNifty: m.beta == null ? null : Math.round(m.beta * 100) / 100,
+          alphaPct: pct1(m.alpha),
+          var95OneDayINR: Math.round(m.var95Daily * r.analysedValue),
+          var95OneMonthINR: Math.round(m.var95Monthly * r.analysedValue),
+          cvar95OneMonthINR: Math.round(m.cvar95Monthly * r.analysedValue),
+          diversificationBenefitPct: standalone > 0 ? pct1(1 - m.annualVolatility / standalone) : null,
+          nifty50: { annualReturnPct: pct1(r.benchmark.annualReturn), volatilityPct: pct1(r.benchmark.annualVolatility), maxDrawdownPct: pct1(r.benchmark.maxDrawdown) },
+          riskFreeRatePct: pct1(r.riskFree),
+          holdings: r.assets.map((a) => ({
+            symbol: a.symbol,
+            name: a.name,
+            weightPct: pct1(a.weight),
+            riskSharePct: pct1(a.riskShare),
+            volatilityPct: pct1(a.annualVolatility),
+            betaToNifty: Math.round(a.betaEquity * 100) / 100,
+            betaToGold: Math.round(a.betaGold * 100) / 100,
+            priceProxy: a.proxy,
+          })),
+          excludedForLackOfHistory: r.excluded.map((e) => e.symbol),
+        };
+      },
+    }),
+    optimizePortfolio: tool({
+      description:
+        'Runs the Markowitz mean-variance optimiser over the user\u2019s own holdings (long-only, Ledoit-Wolf covariance, expected returns shrunk towards long-run asset-class returns). Returns the current vs optimised expected return, volatility and Sharpe, target weights and the rupee trades the model implies. Present results as model output with caveats (tax, exit loads, estimation error), never as a recommendation to buy or sell.',
+      inputSchema: z.object({
+        objective: z.enum(['max_sharpe', 'min_risk', 'same_risk_more_return']).describe('max_sharpe = best return per unit of risk; min_risk = calmest mix; same_risk_more_return = keep current volatility, maximise return'),
+        maxWeightPct: z.number().min(10).max(100).optional().describe('Cap on any single holding, default 35'),
+      }),
+      execute: async ({ objective, maxWeightPct }) => {
+        const r = await risk();
+        if (!r) return noRisk;
+        const { mu, cov, riskFree } = r.optimizer;
+        const current = evaluate(r.assets.map((a) => a.weight), mu, cov, riskFree);
+        const f = efficientFrontier(mu, cov, riskFree, (maxWeightPct ?? 35) / 100);
+        const target =
+          objective === 'min_risk'
+            ? f.minVariance
+            : objective === 'same_risk_more_return'
+              ? [...f.points, f.maxSharpe].filter((p) => p.volatility <= current.volatility + 1e-4).sort((a, b) => b.expectedReturn - a.expectedReturn)[0] ?? f.minVariance
+              : f.maxSharpe;
+        const trades = rebalanceTrades(r.assets.map((a) => a.value), target.weights);
+        return {
+          objective,
+          maxWeightPct: maxWeightPct ?? 35,
+          current: { expectedReturnPct: pct1(current.expectedReturn), volatilityPct: pct1(current.volatility), sharpe: Math.round(current.sharpe * 100) / 100 },
+          optimised: { expectedReturnPct: pct1(target.expectedReturn), volatilityPct: pct1(target.volatility), sharpe: Math.round(target.sharpe * 100) / 100 },
+          weights: r.assets
+            .map((a, i) => ({ symbol: a.symbol, currentPct: pct1(a.weight), targetPct: pct1(target.weights[i]) }))
+            .sort((a, b) => (b.targetPct ?? 0) - (a.targetPct ?? 0)),
+          impliedTradesINR: trades.map((t) => ({ symbol: r.assets[t.index].symbol, amountINR: t.amount })),
+          caveats: 'Model output from two years of data, not advice. Ignores capital-gains tax and exit loads; expected returns are uncertain.',
+        };
+      },
+    }),
+    stressTestPortfolio: tool({
+      description:
+        'Crash test: estimates the rupee impact on the user\u2019s holdings of a market scenario, using each holding\u2019s measured sensitivity (two-factor regression) to the Nifty 50 and gold. Scenarios: gfc (2008, Nifty -60%), covid (2020, Nifty -38%), rates (2022, Nifty -17%), gold (gold -20%), or custom moves.',
+      inputSchema: z.object({
+        scenario: z.enum(['gfc', 'covid', 'rates', 'gold', 'custom']),
+        niftyMovePct: z.number().min(-90).max(100).optional().describe('Custom Nifty 50 move in per cent, e.g. -25'),
+        goldMovePct: z.number().min(-90).max(100).optional().describe('Custom gold move in per cent, e.g. 10'),
+      }),
+      execute: async ({ scenario, niftyMovePct, goldMovePct }) => {
+        const r = await risk();
+        if (!r) return noRisk;
+        const preset = HISTORICAL_SCENARIOS.find((s) => s.id === scenario);
+        const shock = {
+          equity: niftyMovePct != null ? niftyMovePct / 100 : preset?.shock.equity ?? 0,
+          gold: goldMovePct != null ? goldMovePct / 100 : preset?.shock.gold ?? 0,
+        };
+        const expected = evaluate(r.assets.map((a) => a.weight), r.optimizer.mu, r.optimizer.cov, r.riskFree).expectedReturn;
+        const res = stressTest(r.assets.map((a) => a.value), r.assets.map((a) => ({ equity: a.betaEquity, gold: a.betaGold })), shock, expected);
+        return {
+          scenario: preset ? `${preset.name} (${preset.period})` : 'Custom',
+          niftyMovePct: pct1(shock.equity),
+          goldMovePct: pct1(shock.gold),
+          portfolioChangeINR: Math.round(res.pnl),
+          portfolioChangePct: pct1(res.portfolioMove),
+          sameMoneyInNifty50INR: Math.round(r.analysedValue * shock.equity),
+          yearsToRecoverAtExpectedReturn: res.recoveryYears == null ? null : Math.round(res.recoveryYears * 10) / 10,
+          byHolding: r.assets
+            .map((a, i) => ({ symbol: a.symbol, movePct: pct1(res.moves[i]), changeINR: Math.round(a.value * res.moves[i]) }))
+            .sort((a, b) => a.changeINR - b.changeINR),
+          method: 'Linear two-factor model (Nifty 50 and gold betas from 2 years of daily returns). Real crashes are often worse because correlations rise.',
+        };
+      },
+    }),
     getPortfolioOverview: tool({
       description:
         'Totals for the user: invested amount, verified market value, unrealised gain, XIRR, 1-year return vs Nifty 50, allocation by asset class, and pricing coverage.',
@@ -128,4 +243,7 @@ export const COPILOT_TOOL_LABELS: Record<string, string> = {
   getGoals: 'Read your goals',
   simulateGoalChange: 'Simulated a what-if scenario',
   calculateSip: 'Ran a SIP calculation',
+  getRiskReport: 'Ran your Risk Lab analysis',
+  optimizePortfolio: 'Ran the portfolio optimiser',
+  stressTestPortfolio: 'Crash-tested your portfolio',
 };

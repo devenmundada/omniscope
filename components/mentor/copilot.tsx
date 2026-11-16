@@ -23,13 +23,16 @@ const TOOL_LABELS: Record<string, string> = {
   getGoals: 'Read your goals',
   simulateGoalChange: 'Simulated a what-if scenario',
   calculateSip: 'Ran a SIP calculation',
+  getRiskReport: 'Ran your Risk Lab analysis',
+  optimizePortfolio: 'Ran the portfolio optimiser',
+  stressTestPortfolio: 'Crash-tested your portfolio',
 };
 
 const STARTERS = [
   'Explain my Financial Health score and the one thing to fix first.',
-  'Am I too concentrated in any single holding or sector?',
+  'How risky is my portfolio, and where does the risk come from?',
+  'What would a crash like March 2020 do to my portfolio?',
   'What if I increase the SIP on my first goal by ₹5,000 a month?',
-  'How has my portfolio done compared with the Nifty 50?',
 ];
 
 interface ConversationItem {
