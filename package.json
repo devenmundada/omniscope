@@ -12,7 +12,8 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:sync-prices": "tsx scripts/sync-prices.mjs",
-    "db:patch": "node scripts/apply-db-patches.mjs"
+    "db:patch": "node scripts/apply-db-patches.mjs",
+    "test": "vitest run"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.121",
@@ -52,6 +53,7 @@
     "eslint-config-next": "^16.4.0",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "^3.2.7"
   }
 }
