@@ -65,12 +65,13 @@ const casLines = [
 ];
 
 // ---------- 2. Broker holdings export (CSV) ----------
+// The export prints only tickers, so the correct "name as printed" is the ticker.
 const brokerCsvTruth = [
-  h('HDFC Bank Ltd', 'INE040A01034', 85, 1602.35),
-  h('Tata Consultancy Services Ltd', 'INE467B01029', 22, 3712.4),
-  h('ITC Ltd', 'INE154A01025', 300, 431.15),
-  h('Bharti Airtel Ltd', 'INE397D01024', 40, 1188.0),
-  h('Nippon India ETF Gold BeES', 'INF204KA1L12', 650, 61.92),
+  h('HDFCBANK', 'INE040A01034', 85, 1602.35),
+  h('TCS', 'INE467B01029', 22, 3712.4),
+  h('ITC', 'INE154A01025', 300, 431.15),
+  h('BHARTIARTL', 'INE397D01024', 40, 1188.0),
+  h('GOLDBEES', 'INF204KA1L12', 650, 61.92),
 ];
 const brokerCsv = [
   'Instrument,ISIN,Qty.,Avg. cost,LTP,Cur. val,P&L,Net chg.,Day chg.',
