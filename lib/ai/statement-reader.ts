@@ -43,6 +43,8 @@ export async function extractStatement(file: { bytes: Uint8Array; mediaType: str
     statementDate: output.statementDate,
     investorFirstName: output.investorFirstName,
     rows,
+    /** Raw extraction, before catalogue matching (used by the accuracy benchmark). */
+    holdings: output.holdings,
     modelId,
   };
 }

@@ -84,8 +84,23 @@ function thin<T>(points: T[], max: number): T[] {
   return points.filter((_, i) => i % step === 0 || i === points.length - 1);
 }
 
-/** Builds the full risk analysis for a user's verified-priced holdings, or null if there is nothing to analyse. */
-export async function getRiskReport(userId: string): Promise<RiskReport | null> {
+export interface PortfolioReturns {
+  grouped: ReturnType<typeof groupHoldings>;
+  included: Array<ReturnType<typeof groupHoldings>[number] & { series: HistoryPoint[]; proxy: string | null }>;
+  excluded: RiskReport['excluded'];
+  dates: string[];
+  /** Daily returns, one column per included holding. */
+  returns: Matrix;
+  nifty: number[];
+  gold: number[];
+}
+
+/**
+ * Loads a user's verified-priced holdings and aligns their daily returns (with the Nifty 50 and gold
+ * factors) over the last `lookbackDays` calendar days. Gold bonds use Gold BeES as a price proxy and
+ * deposits a steady accrual; holdings with too little history are reported as excluded.
+ */
+export async function loadPortfolioReturns(userId: string, lookbackDays = LOOKBACK_DAYS): Promise<PortfolioReturns | null> {
   const holdings = await getUserHoldings(userId);
   const grouped = groupHoldings(holdings);
   if (grouped.length === 0) return null;
@@ -98,13 +113,13 @@ export async function getRiskReport(userId: string): Promise<RiskReport | null> 
   const goldId = factorRows.find((r) => r.symbol === GOLD_FACTOR_SYMBOL)?.id;
   if (!niftyId || !goldId) return null;
 
-  const since = new Date(Date.now() - LOOKBACK_DAYS * 86_400_000).toISOString().slice(0, 10);
+  const since = new Date(Date.now() - lookbackDays * 86_400_000).toISOString().slice(0, 10);
   const history = await getHistory([...new Set([...grouped.map((g) => g.instrumentId), niftyId, goldId])], since);
   const calendar = (history.get(niftyId) ?? []).map((p) => p.date);
   if (calendar.length < MIN_OBSERVATIONS) return null;
 
   const excluded: RiskReport['excluded'] = [];
-  const included: Array<(typeof grouped)[number] & { series: HistoryPoint[]; proxy: string | null }> = [];
+  const included: PortfolioReturns['included'] = [];
   for (const g of grouped) {
     if (g.assetClass === 'Fixed Income') {
       included.push({ ...g, series: accrualSeries(calendar, defaultStatsFor('Fixed Income').r), proxy: 'accrual' });
@@ -121,9 +136,33 @@ export async function getRiskReport(userId: string): Promise<RiskReport | null> 
   const { dates, returns: all } = alignedReturns(calendar, [...included.map((a) => a.series), history.get(niftyId)!, history.get(goldId)!]);
   if (dates.length < MIN_OBSERVATIONS) return null;
   const n = included.length;
-  const returns = all.map((row) => row.slice(0, n));
-  const nifty = column(all, n);
-  const gold = column(all, n + 1);
+  return {
+    grouped,
+    included,
+    excluded,
+    dates,
+    returns: all.map((row) => row.slice(0, n)),
+    nifty: column(all, n),
+    gold: column(all, n + 1),
+  };
+}
+
+/** Long-run return prior by what a holding actually tracks, not its label: a gold ETF is gold. */
+export function returnPriors(data: PortfolioReturns): { priors: number[]; betas: Array<{ equity: number; gold: number; r2: number }> } {
+  const betas = data.included.map((a, j) =>
+    a.proxy === 'accrual' ? { equity: 0, gold: 0, r2: 0 } : factorBetas(column(data.returns, j), data.nifty, data.gold)
+  );
+  const priors = data.included.map((a, j) =>
+    betas[j].gold > 0.7 && Math.abs(betas[j].equity) < 0.3 ? defaultStatsFor('Gold').r : defaultStatsFor(a.assetClass).r
+  );
+  return { priors, betas };
+}
+
+/** Builds the full risk analysis for a user's verified-priced holdings, or null if there is nothing to analyse. */
+export async function getRiskReport(userId: string): Promise<RiskReport | null> {
+  const data = await loadPortfolioReturns(userId);
+  if (!data) return null;
+  const { grouped, included, excluded, dates, returns, nifty } = data;
 
   const analysedValue = included.reduce((s, a) => s + a.value, 0);
   const weights = included.map((a) => a.value / analysedValue);
@@ -134,11 +173,7 @@ export async function getRiskReport(userId: string): Promise<RiskReport | null> 
   const sample = sampleCovariance(returns);
   const shares = riskContributions(sample, weights);
   const lw = ledoitWolf(returns);
-  const betas = included.map((a, j) => (a.proxy === 'accrual' ? { equity: 0, gold: 0, r2: 0 } : factorBetas(column(returns, j), nifty, gold)));
-  // Long-run return prior by what a holding actually tracks, not its label: a gold ETF is gold.
-  const priors = included.map((a, j) =>
-    betas[j].gold > 0.7 && Math.abs(betas[j].equity) < 0.3 ? defaultStatsFor('Gold').r : defaultStatsFor(a.assetClass).r
-  );
+  const { priors, betas } = returnPriors(data);
   const { mu, historyWeight } = blendedExpectedReturns(returns, priors);
 
   const assets: RiskAsset[] = included.map((a, j) => {

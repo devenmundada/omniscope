@@ -47,7 +47,7 @@ async function fetchMfHistory(amfiCode: string): Promise<{ date: string; close: 
   const res = await fetch(`https://api.mfapi.in/mf/${encodeURIComponent(amfiCode)}`, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
   if (!res.ok) throw new Error(`mfapi HTTP ${res.status}`);
   const data = await res.json();
-  const cutoff = Date.now() - 3 * 365 * 86400000;
+  const cutoff = Date.now() - 5 * 365 * 86400000;
   const out: { date: string; close: number }[] = [];
   for (const r of (data?.data || []) as { date: string; nav: string }[]) {
     const [dd, mm, yyyy] = r.date.split('-');
