@@ -10,6 +10,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?logo=typescript)
 ![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-38BDF8?logo=tailwindcss)
 ![License](https://img.shields.io/badge/License-MIT-green)
+[![CI](https://github.com/devenmundada/omniscope/actions/workflows/ci.yml/badge.svg)](https://github.com/devenmundada/omniscope/actions/workflows/ci.yml)
 
 ---
 
