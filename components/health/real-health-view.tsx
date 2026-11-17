@@ -107,7 +107,7 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
             <div>
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="text-sm font-semibold text-foreground">Pillar Health Profile</h3>
+                  <h2 className="text-sm font-semibold text-foreground">Pillar Health Profile</h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Live verified baseline measurements</p>
                 </div>
                 <span className="text-xs text-muted-foreground font-mono">
@@ -190,9 +190,9 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
                       <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                         Pillar Diagnostic Inspection
                       </span>
-                      <h3 className="text-lg font-semibold text-foreground mt-0.5">
+                      <h2 className="text-lg font-semibold text-foreground mt-0.5">
                         {activePillar.label}
-                      </h3>
+                      </h2>
                       <p className="text-xs text-muted-foreground mt-0.5">{activePillar.question}</p>
                     </div>
                     <span className="tnum font-serif text-2xl text-foreground font-semibold">
@@ -205,7 +205,7 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
                     <div>
                       <div className="flex items-center gap-2 mb-1 text-foreground">
                         <Activity className="size-4 text-primary" />
-                        <h4 className="font-medium text-xs uppercase tracking-wider">Measured Value</h4>
+                        <h3 className="font-medium text-xs uppercase tracking-wider">Measured Value</h3>
                       </div>
                       <p className="text-xs text-foreground font-semibold font-mono bg-card/60 p-2 rounded border border-border/60">
                         {activePillar.metricLabel}: {activePillar.metricValue}
@@ -215,7 +215,7 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
                     <div>
                       <div className="flex items-center gap-2 mb-1 text-foreground">
                         <TrendingUp className="size-4 text-success" />
-                        <h4 className="font-medium text-xs uppercase tracking-wider">Evaluation Rationale</h4>
+                        <h3 className="font-medium text-xs uppercase tracking-wider">Evaluation Rationale</h3>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         {activePillar.insight}
@@ -225,7 +225,7 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
                     <div>
                       <div className="flex items-center gap-2 mb-1 text-foreground">
                         <Sparkles className="size-4 text-gold" />
-                        <h4 className="font-medium text-xs uppercase tracking-wider">Suggested Next Step</h4>
+                        <h3 className="font-medium text-xs uppercase tracking-wider">Suggested Next Step</h3>
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed">
                         {activePillar.recommendation}
@@ -268,9 +268,9 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
             <div>
               <div className="flex items-center gap-2 mb-1">
                 <Wallet className="size-4 text-primary" />
-                <h3 className="text-sm font-semibold text-foreground">
+                <h2 className="text-sm font-semibold text-foreground">
                   Identified Liquid & Invested Assets
-                </h3>
+                </h2>
               </div>
               <p className="text-xs text-muted-foreground max-w-xl">
                 {summary.assets.disclaimer}
@@ -321,7 +321,7 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
                   )}
                 >
                   <div className="flex items-start justify-between gap-2 mb-1">
-                    <h4 className="text-sm font-semibold text-foreground">{diag.title}</h4>
+                    <h3 className="text-sm font-semibold text-foreground">{diag.title}</h3>
                     <span
                       className={cn(
                         'text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full shrink-0',
@@ -381,7 +381,7 @@ export function RealHealthView({ assessment, summary }: RealHealthViewProps) {
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h3 className="text-base font-semibold text-foreground">{p.label}</h3>
+                          <h2 className="text-base font-semibold text-foreground">{p.label}</h2>
                           <span className="text-[10px] text-muted-foreground font-mono">
                             {p.isAssessed
                               ? `Weight: ${(p.normalizedWeight * 100).toFixed(0)}%`

@@ -27,19 +27,23 @@ const tag = (block: string, name: string) => {
 /** Parses a Google News RSS document into items. Exported for tests. */
 export function parseRss(xml: string, limit = 5, idPrefix = 'n'): NewsItem[] {
   const items = xml.match(/<item>[\s\S]*?<\/item>/g) ?? [];
-  return items.slice(0, limit).map((block, i) => {
-    const source = tag(block, 'source');
-    let title = tag(block, 'title');
-    if (source && title.endsWith(` - ${source}`)) title = title.slice(0, -(source.length + 3));
-    const pub = tag(block, 'pubDate');
-    return {
-      id: `${idPrefix}${i}`,
-      title,
-      link: tag(block, 'link'),
-      source: source || 'Google News',
-      publishedAt: pub && !Number.isNaN(Date.parse(pub)) ? new Date(pub).toISOString() : null,
-    };
-  });
+  return items
+    .map((block) => {
+      const source = tag(block, 'source');
+      let title = tag(block, 'title').trim();
+      if (source && title.endsWith(` - ${source}`)) title = title.slice(0, -(source.length + 3));
+      const pub = tag(block, 'pubDate');
+      return {
+        title,
+        link: tag(block, 'link'),
+        source: source || 'Google News',
+        publishedAt: pub && !Number.isNaN(Date.parse(pub)) ? new Date(pub).toISOString() : null,
+      };
+    })
+    // A headline-less item would render as an empty, unnamed link.
+    .filter((n) => n.title && n.link)
+    .slice(0, limit)
+    .map((n, i) => ({ id: `${idPrefix}${i}`, ...n }));
 }
 
 /**

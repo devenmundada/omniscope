@@ -64,17 +64,23 @@ export default function LearnPage() {
       </StaggerItem>
 
       <StaggerItem className="flex justify-between items-end mb-4">
-        <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
+        <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase">
           Your Learning Journey
-        </h3>
+        </h2>
         <div className="flex bg-accent/50 p-1 rounded-lg">
-          <button 
+          <button
+            type="button"
+            aria-label="Show as skill tree"
+            aria-pressed={viewMode === 'tree'}
             onClick={() => setViewMode('tree')}
             className={cn("p-1.5 rounded-md transition-colors", viewMode === 'tree' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
           >
             <Network className="size-4" />
           </button>
-          <button 
+          <button
+            type="button"
+            aria-label="Show as list"
+            aria-pressed={viewMode === 'list'}
             onClick={() => setViewMode('list')}
             className={cn("p-1.5 rounded-md transition-colors", viewMode === 'list' ? "bg-background shadow-sm text-foreground" : "text-muted-foreground hover:text-foreground")}
           >

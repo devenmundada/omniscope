@@ -290,7 +290,7 @@ export function RealXRayView({ analytics }: RealXRayViewProps) {
           {/* Expandable Explanation of Calculation Basis */}
           {showHhiDetails && (
             <div className="mt-4 rounded-xl bg-muted/60 p-4 text-xs leading-relaxed text-muted-foreground border border-border">
-              <h4 className="font-semibold text-foreground mb-1">Calculation Methodology & Practical Limitations:</h4>
+              <h3 className="font-semibold text-foreground mb-1">Calculation Methodology & Practical Limitations:</h3>
               <p>{concentration.hhiExplanation}</p>
               <div className="mt-3 grid sm:grid-cols-3 gap-2 font-mono text-[11px]">
                 <div className="p-2 rounded bg-background border border-border">

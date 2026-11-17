@@ -151,7 +151,7 @@ export function RealGoalsView({
             <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-primary/10 text-primary mb-4">
               <Target className="size-6" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground">No Goals Defined Yet</h3>
+            <h2 className="text-lg font-semibold text-foreground">No Goals Defined Yet</h2>
             <p className="mt-2 text-sm text-muted-foreground max-w-md mx-auto">
               Setting specific milestones like retirement, buying a home, or higher education anchors your investment strategy to real-world timelines.
             </p>
@@ -290,7 +290,7 @@ function RealGoalCard({
             </span>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-semibold text-foreground">{goal.name}</h3>
+                <h2 className="text-base font-semibold text-foreground">{goal.name}</h2>
                 {goal.category && goal.category !== 'OTHER' && (
                   <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                     {goal.category}
@@ -490,10 +490,10 @@ function RealGoalCard({
 
               {/* Multi-Scenario Projections */}
               <div className="mb-6">
-                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                   <TrendingUp className="size-3.5 text-primary" />
                   Growth Scenarios at Milestone ({details.deadlineDate})
-                </h4>
+                </h3>
                 <div className="grid grid-cols-3 gap-2 text-center">
                   <div className="p-2.5 rounded-lg border border-border bg-card">
                     <span className="text-[10px] text-muted-foreground font-medium uppercase block">Conservative (6%)</span>
@@ -535,10 +535,10 @@ function RealGoalCard({
               {/* Risk Factors */}
               <div className="space-y-4 mb-6">
                 <div>
-                  <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
                     <AlertTriangle className="size-3.5 text-warning" />
                     Key Risk Factors
-                  </h4>
+                  </h3>
                   <ul className="space-y-1.5">
                     {details.riskFactors.map((risk, i) => (
                       <li key={i} className="text-xs text-foreground flex items-start gap-2">
@@ -554,7 +554,7 @@ function RealGoalCard({
               <div className="rounded-lg border border-border bg-card p-4">
                 <div className="flex items-center gap-2 mb-2 text-foreground">
                   <CheckCircle2 className="size-4 text-primary" />
-                  <h4 className="text-xs font-semibold uppercase tracking-wider">Suggested Next Steps</h4>
+                  <h3 className="text-xs font-semibold uppercase tracking-wider">Suggested Next Steps</h3>
                 </div>
                 <p className="text-xs text-muted-foreground leading-relaxed">
                   {details.guidance}

@@ -347,7 +347,7 @@ export function RealHoldingsView({
           <div className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-primary/10 text-primary mb-4">
             <Wallet className="size-7" />
           </div>
-          <h3 className="text-xl font-serif font-semibold text-foreground">Your Portfolio is Empty</h3>
+          <h2 className="text-xl font-serif font-semibold text-foreground">Your Portfolio is Empty</h2>
           <p className="text-sm text-muted-foreground max-w-md mx-auto mt-2 leading-relaxed">
             Record your stocks, mutual funds, gold bonds, or ETFs to track your financial wealth
             with real mathematical precision and multi-tenant security.

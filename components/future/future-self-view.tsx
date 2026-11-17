@@ -42,9 +42,9 @@ export function FutureSelfView({ scenarios, banner }: { scenarios: FutureScenari
       <div className="grid gap-6 lg:grid-cols-4 mb-6">
         {/* Scenarios List */}
         <StaggerItem className="lg:col-span-1 flex flex-col gap-3">
-          <h3 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase mb-2">
+          <h2 className="text-sm font-semibold tracking-wide text-muted-foreground uppercase mb-2">
             Alternative Strategies
-          </h3>
+          </h2>
           {scenarios.map((scenario) => (
             <button
               type="button"
@@ -58,7 +58,7 @@ export function FutureSelfView({ scenarios, banner }: { scenarios: FutureScenari
                   : "border-border bg-card hover:border-primary/40 hover:bg-accent/50"
               )}
             >
-              <h4 className="font-medium text-foreground text-sm">{scenario.title}</h4>
+              <h3 className="font-medium text-foreground text-sm">{scenario.title}</h3>
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2 leading-relaxed">
                 {scenario.description}
               </p>
@@ -80,7 +80,7 @@ export function FutureSelfView({ scenarios, banner }: { scenarios: FutureScenari
               <Card className="p-6 h-full border-l-4 border-l-info bg-info-muted/10">
                 <div className="flex items-center gap-2 mb-4 text-info">
                   <Lightbulb className="size-5" />
-                  <h3 className="font-semibold text-foreground">Educational Insight</h3>
+                  <h2 className="font-semibold text-foreground">Educational Insight</h2>
                 </div>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   {activeScenario.educationalInsight}
@@ -92,7 +92,7 @@ export function FutureSelfView({ scenarios, banner }: { scenarios: FutureScenari
               <Card className="p-6 h-full border-l-4 border-l-warning bg-warning-muted/10">
                 <div className="flex items-center gap-2 mb-4 text-warning">
                   <AlertCircle className="size-5" />
-                  <h3 className="font-semibold text-foreground">Assumptions & Trade-offs</h3>
+                  <h2 className="font-semibold text-foreground">Assumptions & Trade-offs</h2>
                 </div>
                 <div className="space-y-4">
                   <div>

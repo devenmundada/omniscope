@@ -117,11 +117,12 @@ export function ProfileEditor({ initialData }: { initialData: UserFullProfile })
 
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <label htmlFor="email" className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
               Verified Email
             </label>
             <div className="relative">
               <Input
+                id="email"
                 type="email"
                 value={user.email}
                 disabled
@@ -203,10 +204,11 @@ export function ProfileEditor({ initialData }: { initialData: UserFullProfile })
 
         <div className="grid gap-4 sm:grid-cols-2 mb-6">
           <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <label htmlFor="riskStyle" className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
               Risk Style
             </label>
             <select
+              id="riskStyle"
               value={riskStyle}
               onChange={(e) => setRiskStyle(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -220,10 +222,11 @@ export function ProfileEditor({ initialData }: { initialData: UserFullProfile })
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
+            <label htmlFor="decisionStyle" className="text-xs font-medium text-muted-foreground uppercase tracking-wider block mb-1.5">
               Decision Style
             </label>
             <select
+              id="decisionStyle"
               value={decisionStyle}
               onChange={(e) => setDecisionStyle(e.target.value)}
               className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
@@ -244,6 +247,7 @@ export function ProfileEditor({ initialData }: { initialData: UserFullProfile })
             <span className="text-sm font-bold text-primary tnum">{riskScore} / 100</span>
           </div>
           <input
+            aria-label="Risk tolerance score"
             type="range"
             min="0"
             max="100"

@@ -18,14 +18,14 @@ export function MentorNotes({ title, content, className, confidence, actionable 
         </div>
         <div className="flex-1 space-y-1.5">
           {title && (
-            <h4 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
+            <h2 className="text-sm font-semibold tracking-tight text-foreground flex items-center gap-2">
               {title}
               {confidence && (
                 <span className="inline-flex items-center rounded-full bg-background px-2 py-0.5 text-[10px] font-medium text-muted-foreground border border-border/50">
                   {confidence} Confidence
                 </span>
               )}
-            </h4>
+            </h2>
           )}
           <p className="text-sm leading-relaxed text-muted-foreground">
             {content}

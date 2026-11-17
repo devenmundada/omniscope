@@ -78,7 +78,7 @@ function MilestoneCard({ milestone, defaultOpen }: { milestone: JourneyMilestone
               <History className="size-5" aria-hidden />
             </div>
             <div>
-              <h3 className="text-lg font-serif text-foreground">{milestone.achievement}</h3>
+              <h2 className="text-lg font-serif text-foreground">{milestone.achievement}</h2>
               {!isExpanded && (
                 <p className="text-sm text-muted-foreground mt-0.5 line-clamp-1">
                   {milestone.story}
@@ -86,7 +86,12 @@ function MilestoneCard({ milestone, defaultOpen }: { milestone: JourneyMilestone
               )}
             </div>
           </div>
-          <button className="p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <button
+            type="button"
+            aria-expanded={isExpanded}
+            aria-label={isExpanded ? 'Collapse milestone details' : 'Expand milestone details'}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors"
+          >
             {isExpanded ? <ChevronUp className="size-5" /> : <ChevronDown className="size-5" />}
           </button>
         </div>
