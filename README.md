@@ -254,6 +254,30 @@ Institutional risk analytics on the user's own holdings, from two years of verif
 
 The AI Copilot can run the same engine through three tools: `getRiskReport`, `optimizePortfolio` and `stressTestPortfolio`.
 
+## 🗣️ Hindi Copilot with Voice
+
+- English / हिन्दी switch: in Hindi the Copilot answers in Devanagari, keeps terms like SIP, XIRR and NAV in English, and writes amounts as ₹7.43 लाख so every figure stays checkable
+- Ask by voice (browser speech recognition, `en-IN` or `hi-IN`) with live transcription
+- Listen to any answer read aloud in an Indian English or Hindi voice
+- The benchmark includes five Hindi questions that must answer in Hindi with exact figures
+
+---
+
+## 📒 Transaction Ledger
+
+- Record buys (in instalments), sells, bonus shares and splits per holding
+- FIFO lots, as for demat holdings: each lot keeps its own holding period; bonus shares cost zero from allotment; splits keep lot dates
+- Holdings (units, average cost, first purchase date) are re-derived from the ledger
+- The Tax Centre taxes each lot separately and counts long-term gains already booked this year against the ₹1.25 lakh exemption
+
+---
+
+## 🖨️ Portfolio Report
+
+`/report` produces an A4, print-ready report (print or save as PDF): key observations, holdings, allocation, two-year risk, goal odds, capital-gains tax and financial health.
+
+---
+
 ## 🎯 Goal-Based Optimiser
 
 Markowitz finds the most return for each level of risk; a goal needs enough return, reliably, by a deadline. For every portfolio on the efficient frontier, each goal is simulated by Monte Carlo and the mix with the highest probability of success is chosen.
@@ -325,6 +349,8 @@ Every table can be copied as Markdown for reports.
 
 - Unit tests check each engine against closed-form results: tangency and minimum-variance portfolios, exact factor betas from synthetic data, Ledoit–Wolf properties, drawdown and VaR, XIRR, Monte Carlo, corporate-action cleaning and statement matching.
 - `npm test` runs the suite; `npx tsc --noEmit` and `npm run lint` keep types and style clean.
+- GitHub Actions runs the type check, lint, unit tests and a production build without secrets on every push and pull request.
+- An accessibility audit of every page (accessible names, form labels, heading order) is clean.
 
 ---
 

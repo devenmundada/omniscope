@@ -171,6 +171,7 @@ export default async function MethodologyPage() {
             <li>Market summaries cite headline IDs that are checked against the fetched news; IDs never leak into the text.</li>
             <li>Gemini 3.5 Flash-Lite with a 3.1 Flash-Lite fallback, a time budget per model, and no slow retries, so an answer or a clear error always arrives.</li>
             <li>Guardrails: education and analysis only, no buy or sell recommendations, no price predictions.</li>
+            <li>Hindi mode answers in Devanagari with Western digits and ₹ लाख/करोड़, so the same benchmark checks Hindi answers for exact figures.</li>
           </ul>
         </Card>
         <Card className="p-5">
