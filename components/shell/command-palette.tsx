@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useRouter } from 'next/navigation'
 import { Command } from 'cmdk'
-import { Search, Compass, BarChart, Target, Sparkles, BookOpen, ShieldCheck, PieChart, LogIn, Lock, UserCog } from 'lucide-react'
+import { Search, Compass, BarChart, Target, Sparkles, BookOpen, ShieldCheck, PieChart, LogIn, Lock, UserCog, FileDown } from 'lucide-react'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 
 export function CommandPalette() {
@@ -116,6 +116,13 @@ export function CommandPalette() {
               >
                 <LogIn className="mr-2 h-4 w-4 text-primary" />
                 <span>Sign In / Switch Account</span>
+              </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/report'))}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+              >
+                <FileDown className="mr-2 h-4 w-4" />
+                <span>Portfolio report (print or PDF)</span>
               </Command.Item>
               <Command.Item
                 onSelect={() => runCommand(() => router.push('/methodology'))}

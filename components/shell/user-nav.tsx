@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Lock, LogOut, LogIn, UserPlus, Loader2, UserCog } from 'lucide-react';
+import { ShieldCheck, Lock, LogOut, LogIn, UserPlus, Loader2, UserCog, FileDown } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { signOutAction } from '@/app/auth/actions';
 import { isSupabaseConfigured } from '@/lib/env';
@@ -95,6 +95,12 @@ export function UserNav() {
             className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 flex items-center gap-2"
           >
             <UserCog className="size-3.5" /> Financial Profile
+          </Link>
+          <Link
+            href="/report"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 flex items-center gap-2"
+          >
+            <FileDown className="size-3.5" /> Portfolio report (PDF)
           </Link>
           <Link
             href="/methodology"

@@ -10,6 +10,7 @@ const PROTECTED_PREFIXES = [
   '/risk',
   '/tax',
   '/evaluation',
+  '/report',
   '/health',
   '/goals',
   '/mentor',

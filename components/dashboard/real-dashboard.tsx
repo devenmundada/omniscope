@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Suspense } from 'react';
-import { ArrowRight, FileSpreadsheet, Plus, Sparkles } from 'lucide-react';
+import { ArrowRight, FileDown, FileSpreadsheet, Plus, Sparkles } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Delta } from '@/components/omni/primitives';
 import { AnimatedNumber } from '@/components/omni/animated-number';
@@ -95,12 +95,20 @@ export function RealDashboard({ userId, snapshot }: { userId: string; snapshot: 
                   )}
                 </p>
               </div>
-              <Link
-                href="/portfolio"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
-              >
-                View holdings <ArrowRight className="size-4" aria-hidden />
-              </Link>
+              <div className="flex flex-wrap gap-2">
+                <Link
+                  href="/report"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  <FileDown className="size-4" aria-hidden /> Report
+                </Link>
+                <Link
+                  href="/portfolio"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-3.5 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+                >
+                  View holdings <ArrowRight className="size-4" aria-hidden />
+                </Link>
+              </div>
             </div>
             <div className="grid grid-cols-2 gap-4 border-t border-border pt-5 sm:grid-cols-4">
               <MiniStat
