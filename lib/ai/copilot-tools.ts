@@ -58,11 +58,13 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
           newCashINR: r0(newCashINR),
           gapToTargetTodayPct: Math.round(result.te0 * 10000) / 100,
           gapMeaning: 'Active risk: the typical yearly difference between this portfolio and the target mix (annualised tracking error).',
+          gapReachableWithLocksPct: Math.round((result.te0 > 0 ? 1 - result.smart[result.smart.length - 1].te / result.te0 : 1) * 100),
           recommendedPlan: {
             gapClosedPct: Math.round(plan.captured * 100),
             gapAfterPct: Math.round(plan.te * 10000) / 100,
             extraTaxINR: r0(plan.extraTax),
-            tradingCostsINR: r0(plan.tradingCost),
+            tradingChargesINR: r0(plan.tradingCost),
+            totalCostINR: r0(plan.extraTax + plan.tradingCost),
             amountTradedINR: r0(plan.turnover),
             trades: data.assets
               .map((a, i) => ({ symbol: a.symbol, nowPct: pct1(a.value / result.total), targetPct: pct1(weights[i]), afterPct: pct1(plan.weights[i]), tradeINR: r0(plan.trades[i]) }))
@@ -78,13 +80,13 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
             })),
             worthWaitingFor: plan.waits.map((w) => ({ symbol: w.symbol, account: w.account, longTermOn: w.longTermOn, days: w.days, taxSavedINR: r0(w.saving) })),
             expectedReturnPct: { now: pct1(before.expectedReturn), after: pct1(after.expectedReturn) },
-            riskPct: { now: pct1(before.volatility), after: pct1(after.volatility) },
+            portfolioVolatilityPct: { now: pct1(before.volatility), after: pct1(after.volatility), note: 'Total portfolio risk, not the gap to the target.' },
           },
           oldestFirstForSameGap: naiveSame ? { taxINR: r0(naiveSame.tax), totalCostINR: r0(naiveSame.cost) } : 'Selling oldest-first cannot get this close to the target with these locks.',
           fullRebalance: { taxSmartTaxINR: r0(full.extraTax), taxSmartTotalCostINR: r0(full.extraTax + full.tradingCost), oldestFirstTaxINR: r0(naiveFull.tax), oldestFirstTotalCostINR: r0(naiveFull.cost) },
           notSold: data.assets.filter((_, i) => input.locked?.[i]).map((a) => a.symbol),
           page: '/rebalance',
-          notes: 'Model output for learning, not advice. Exit loads, STT and surcharge are not modelled. Gold bonds are kept because their gain is tax-free if held to maturity.',
+          notes: 'Model output for learning, not advice. Charges are 0.1% of each side of every trade; exit loads, STT and surcharge are not modelled. Gold bonds are kept because their gain is tax-free if held to maturity; locked holdings are why only gapReachableWithLocksPct of the gap can be closed.',
         };
       },
     }),

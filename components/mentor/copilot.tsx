@@ -111,7 +111,7 @@ interface RebalanceOutput {
   error?: string;
   target?: string;
   gapToTargetTodayPct?: number;
-  recommendedPlan?: { gapClosedPct: number; extraTaxINR: number; tradingCostsINR: number };
+  recommendedPlan?: { gapClosedPct: number; totalCostINR: number };
   oldestFirstForSameGap?: { taxINR: number; totalCostINR: number } | string;
 }
 
@@ -129,7 +129,7 @@ function RebalanceCard({ out }: { out: RebalanceOutput }) {
         </div>
         <div>
           <p className="text-[10px] uppercase text-muted-foreground">Tax + charges</p>
-          <p className="font-serif text-2xl tnum text-foreground">{formatINRCompact(plan.extraTaxINR + plan.tradingCostsINR)}</p>
+          <p className="font-serif text-2xl tnum text-foreground">{formatINRCompact(plan.totalCostINR)}</p>
         </div>
         {naive && (
           <div>
