@@ -61,6 +61,11 @@ export function TaxCentreView({ data }: { data: TaxCentreData }) {
           title="What would you owe if you sold today?"
           question="Capital-gains tax on every holding under the rules in force since 23 July 2024, and three legal ways to owe less."
         />
+        <p className="-mt-5 mb-8 text-sm text-muted-foreground">
+          Rebalancing? The{' '}
+          <Link href="/rebalance" className="font-medium text-primary hover:underline">Tax-smart Rebalancer</Link>{' '}
+          picks which units to sell, and from which account, so the move costs as little tax as possible.
+        </p>
       </StaggerItem>
 
       {undated.length > 0 && (

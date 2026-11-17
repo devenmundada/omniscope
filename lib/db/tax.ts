@@ -11,7 +11,7 @@ export interface TaxCentreData {
   asOf: string;
   financialYear: string;
   /** One entry per holding, or per open lot when the holding has a transaction ledger. */
-  holdings: Array<TaxHoldingInput & { accountName: string; lotLabel?: string }>;
+  holdings: Array<TaxHoldingInput & { accountName: string; accountId: string; instrumentId: string; lotLabel?: string }>;
   /** Lots sold during this financial year (from the ledger). */
   realized: Array<{ symbol: string; buyDate: string; sellDate: string; units: number; gain: number; term: 'short' | 'long' | null; bucket: Bucket | null }>;
   /** Net long-term equity gains already booked this year, which use up the exemption. */
@@ -57,6 +57,8 @@ export async function getTaxCentreData(userId: string): Promise<TaxCentreData> {
           symbol: h.symbol,
           name: h.name,
           accountName: h.accountName,
+          accountId: h.accountId,
+          instrumentId: h.instrumentId,
           lotLabel: lots.length > 1 ? `lot ${i + 1} of ${lots.length}` : undefined,
           category,
           purchaseDate: l.buyDate,
@@ -71,6 +73,8 @@ export async function getTaxCentreData(userId: string): Promise<TaxCentreData> {
         symbol: h.symbol,
         name: h.name,
         accountName: h.accountName,
+        accountId: h.accountId,
+        instrumentId: h.instrumentId,
         category,
         purchaseDate: h.firstPurchasedAt ? istDate(new Date(h.firstPurchasedAt)) : null,
         units: h.units,

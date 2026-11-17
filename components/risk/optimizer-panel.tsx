@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
 import { efficientFrontier, evaluate, frontierAtVolatility, randomPortfolios, rebalanceTrades, type FrontierPoint } from '@/lib/math/optimizer';
@@ -160,7 +161,11 @@ export function OptimizerPanel({ report }: { report: RiskReport }) {
         </table>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           Moving to this mix means trading about {formatINRCompact(turnover)}. Selling can trigger capital-gains tax and exit loads, which this
-          model ignores. Expected returns blend each holding&rsquo;s history ({Math.round(report.optimizer.historyWeight * 100)}% weight) with
+          frontier ignores; the{' '}
+          <Link href={`/rebalance?target=${preset === 'custom' ? 'maxSharpe' : preset}`} className="font-medium text-primary hover:underline">
+            Tax-smart Rebalancer
+          </Link>{' '}
+          works out the cheapest way to get there, lot by lot. Expected returns blend each holding&rsquo;s history ({Math.round(report.optimizer.historyWeight * 100)}% weight) with
           long-run asset-class returns, because two years of history alone would overrate whatever just rallied. This is a model, not advice.
         </p>
       </div>
