@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
@@ -38,7 +39,8 @@ function heldFor(from: string, to: string) {
 
 export function TaxCentreView({ data }: { data: TaxCentreData }) {
   const [slabRate, setSlabRate] = useState(data.defaultSlabRate);
-  const [booked, setBooked] = useState(0);
+  // Long-term equity gains already realised this year (from the ledger) use up the exemption.
+  const [booked, setBooked] = useState(Math.round(data.bookedLtcgEquity));
   const opts = useMemo(() => ({ slabRate, ltcgAlreadyBooked: booked }), [slabRate, booked]);
 
   const positions = useMemo(() => data.holdings.map((h) => classifyPosition(h, data.asOf)), [data]);
@@ -64,6 +66,21 @@ export function TaxCentreView({ data }: { data: TaxCentreData }) {
       {undated.length > 0 && (
         <StaggerItem className="mb-6">
           <MissingDates positions={undated} asOf={data.asOf} total={positions.length} />
+        </StaggerItem>
+      )}
+
+      {data.realized.length > 0 && (
+        <StaggerItem className="mb-4">
+          <Card className="p-5 text-sm">
+            <p className="font-medium">
+              Already booked in {data.financialYear}: {inr(data.realized.reduce((s, r) => s + r.gain, 0))} of gains on {data.realized.length} lot{data.realized.length === 1 ? '' : 's'}
+              , about {inr(data.bookedTax)} in tax.
+            </p>
+            <p className="mt-1 text-muted-foreground">
+              From your <Link href="/portfolio/ledger" className="text-primary hover:underline">transaction ledger</Link>. {inr(data.bookedLtcgEquity)} of long-term equity gains count against
+              this year&rsquo;s exemption below.
+            </p>
+          </Card>
         </StaggerItem>
       )}
 
@@ -254,6 +271,7 @@ function Row({ p, asOf, tax }: { p: TaxPosition; asOf: string; tax: number | nul
     <tr className="border-b border-border/60 align-top">
       <td className="py-2.5">
         <span className="font-medium text-foreground">{p.symbol}</span>
+        {(p as TaxPosition & { lotLabel?: string }).lotLabel && <span className="ml-1.5 text-[11px] text-muted-foreground">{(p as TaxPosition & { lotLabel?: string }).lotLabel}</span>}
         <span className="block text-xs text-muted-foreground">{CATEGORY_LABELS[p.category]}</span>
       </td>
       <td className="py-2.5 text-muted-foreground">

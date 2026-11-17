@@ -91,7 +91,7 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
       }),
       execute: async ({ slabRatePct, ltcgAlreadyBookedINR }) => {
         const data = await getTaxCentreData(snapshot.summary.userId);
-        const opts = { slabRate: slabRatePct != null ? slabRatePct / 100 : data.defaultSlabRate, ltcgAlreadyBooked: ltcgAlreadyBookedINR ?? 0 };
+        const opts = { slabRate: slabRatePct != null ? slabRatePct / 100 : data.defaultSlabRate, ltcgAlreadyBooked: ltcgAlreadyBookedINR ?? data.bookedLtcgEquity };
         const positions = data.holdings.map((h) => classifyPosition(h, data.asOf));
         const dated = positions.filter((p) => p.bucket);
         const tax = computeTax(dated, opts);
@@ -106,6 +106,9 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
           taxByBucketINR: Object.fromEntries(Object.entries(tax.tax).map(([k, v]) => [k, round(v)])),
           ltcgExemptionLeftINR: round(Math.max(0, TAX_RULES.ltcgExemption - opts.ltcgAlreadyBooked)),
           lossesToCarryForwardINR: { shortTerm: round(tax.carryForward.shortTerm), longTerm: round(tax.carryForward.longTerm) },
+          alreadyBookedThisYear: data.realized.length
+            ? { gainsINR: round(data.realized.reduce((s, r) => s + r.gain, 0)), longTermEquityINR: round(data.bookedLtcgEquity), estimatedTaxINR: round(data.bookedTax), lots: data.realized.length }
+            : null,
           holdings: positions.map((p) => ({
             symbol: p.symbol,
             type: CATEGORY_LABELS[p.category],

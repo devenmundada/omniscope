@@ -1,5 +1,8 @@
 'use client';
 
+import Link from 'next/link';
+
+import { ListOrdered } from 'lucide-react';
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card } from '@/components/ui/card';
@@ -300,6 +303,13 @@ export function RealHoldingsView({
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Link
+            href="/portfolio/ledger"
+            className="inline-flex h-8 flex-1 items-center justify-center gap-1.5 rounded-md border border-border bg-background px-3 text-xs font-medium hover:bg-accent sm:flex-initial"
+          >
+            <ListOrdered className="size-3.5" />
+            Transactions
+          </Link>
           <Button
             type="button"
             variant="outline"
