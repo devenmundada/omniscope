@@ -11,6 +11,16 @@ describe('number extraction', () => {
   });
 });
 
+describe('Hindi answers', () => {
+  it('reads Hindi units and Devanagari digits', () => {
+    const n = extractNumbers('आपका पोर्टफोलियो ₹7.43 लाख का है, टैक्स ₹9,256 और लक्ष्य ₹1.2 करोड़; जोखिम १३.५ प्रतिशत, ५० हज़ार');
+    const values = n.map((x) => Math.round(x.value * 100) / 100);
+    expect(values).toEqual(expect.arrayContaining([743000, 9256, 12000000, 13.5, 50000]));
+    expect(n.find((x) => x.value === 13.5)?.percent).toBe(true);
+    expect(factPresent('आपके पोर्टफोलियो की कीमत ₹7.43 लाख है।', { label: 'v', value: 742761, unit: 'inr' })).toBe(true);
+  });
+});
+
 describe('fact checking', () => {
   it('accepts normal rounding and rejects wrong figures', () => {
     expect(factPresent('Your portfolio is worth ₹7.43 lakh.', { label: 'v', value: 743412, unit: 'inr' })).toBe(true);

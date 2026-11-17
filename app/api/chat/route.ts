@@ -5,7 +5,7 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { AI_MAX_RETRIES, AI_NOT_CONFIGURED_MESSAGE, describeAiError, isAiConfigured, PRIMARY_MODEL_ID, resilientModel } from '@/lib/ai/model';
 import { loadFinancialSnapshot } from '@/lib/ai/snapshot';
 import { buildCopilotTools } from '@/lib/ai/copilot-tools';
-import { copilotSystemPrompt } from '@/lib/ai/copilot-prompt';
+import { copilotSystemPrompt, type CopilotLanguage } from '@/lib/ai/copilot-prompt';
 import { appendMessage, ensureConversation } from '@/lib/db/conversations';
 import { logger } from '@/lib/logger';
 
@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: AI_NOT_CONFIGURED_MESSAGE }, { status: 503 });
   }
 
-  let body: { id?: string; messages?: UIMessage[] };
+  let body: { id?: string; messages?: UIMessage[]; language?: string };
   try {
     body = await req.json();
   } catch {
@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
   const result = streamText({
     model: resilientModel(),
     system: copilotSystemPrompt({
+      language: (body.language === 'hi' ? 'hi' : 'en') as CopilotLanguage,
       userName,
       today: new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Asia/Kolkata' }),
     }),

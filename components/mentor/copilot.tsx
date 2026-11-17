@@ -14,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { formatINRCompact } from '@/lib/format';
 import { deleteConversationAction } from '@/app/mentor/actions';
+import { MicButton, SpeakButton, setCopilotLanguage, useCopilotLanguage, useVoiceInput } from './voice';
 
 const TOOL_LABELS: Record<string, string> = {
   getPortfolioOverview: 'Read your portfolio totals',
@@ -29,6 +30,13 @@ const TOOL_LABELS: Record<string, string> = {
   getTaxEstimate: 'Estimated your capital-gains tax',
   optimizeForGoals: 'Ran the goal-based optimiser',
 };
+
+const STARTERS_HI = [
+  'मेरा Financial Health score समझाइए और सबसे पहले क्या सुधारना चाहिए?',
+  'मेरा पोर्टफोलियो कितना जोखिम भरा है, और जोखिम कहाँ से आ रहा है?',
+  'अगर मार्च 2020 जैसी गिरावट आए तो मेरे पोर्टफोलियो का क्या होगा?',
+  'अगर मैं आज सब बेच दूँ तो मुझे कितना टैक्स देना होगा?',
+];
 
 const STARTERS = [
   'Explain my Financial Health score and the one thing to fix first.',
@@ -93,7 +101,11 @@ function WhatIfCard({ out }: { out: WhatIfOutput }) {
   );
 }
 
-function MessageBody({ message }: { message: UIMessage }) {
+function MessageBody({ message, canSpeak }: { message: UIMessage; canSpeak?: boolean }) {
+  const spoken = message.parts
+    .filter((p): p is { type: 'text'; text: string } => p.type === 'text')
+    .map((p) => p.text)
+    .join('\n');
   return (
     <div className="space-y-2">
       {message.parts.map((part, i) => {
@@ -119,6 +131,7 @@ function MessageBody({ message }: { message: UIMessage }) {
         }
         return null;
       })}
+      {canSpeak && message.role === 'assistant' && <SpeakButton text={spoken} />}
     </div>
   );
 }
@@ -140,6 +153,8 @@ export function Copilot({
   const transport = useMemo(() => new DefaultChatTransport({ api: '/api/chat' }), []);
   const { messages, sendMessage, status, error, stop } = useChat({ id: conversationId, messages: initialMessages, transport });
   const busy = status === 'submitted' || status === 'streaming';
+  const language = useCopilotLanguage();
+  const hindi = language === 'hi';
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -149,7 +164,7 @@ export function Copilot({
     const t = text.trim();
     if (!t || busy) return;
     setInput('');
-    await sendMessage({ text: t });
+    await sendMessage({ text: t }, { body: { language } });
     // Pin the conversation id in the URL. Without ?c=, the server would mint a new id on refresh,
     // remount this component with an empty chat and wipe the answer that just streamed in.
     if (new URLSearchParams(window.location.search).get('c') === conversationId) {
@@ -158,6 +173,8 @@ export function Copilot({
       router.replace(`/mentor?c=${conversationId}`, { scroll: false });
     }
   };
+
+  const voice = useVoiceInput(language, setInput, (text) => void send(text));
 
   const newChat = () => router.push(`/mentor?c=${crypto.randomUUID()}`);
 
@@ -213,13 +230,15 @@ export function Copilot({
                 <Sparkles className="size-6" />
               </div>
               <div className="text-center">
-                <h2 className="text-lg font-medium text-foreground">Ask anything about your money.</h2>
+                <h2 className="text-lg font-medium text-foreground">{hindi ? 'अपने पैसों के बारे में कुछ भी पूछें।' : 'Ask anything about your money.'}</h2>
                 <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                  I read your verified holdings, X-Ray, health score and goals, run what-if simulations, and explain the result.
+                  {hindi
+                    ? 'मैं आपकी होल्डिंग्स, जोखिम, टैक्स और लक्ष्यों का असली डेटा पढ़ता हूँ, गणना करता हूँ और आसान भाषा में समझाता हूँ। बोलकर भी पूछ सकते हैं।'
+                    : 'I read your verified holdings, risk, tax, health score and goals, run the calculations, and explain the result. You can also ask by voice, in English or Hindi.'}
                 </p>
               </div>
               <div className="grid w-full max-w-2xl grid-cols-1 gap-2 sm:grid-cols-2">
-                {STARTERS.map((s) => (
+                {(hindi ? STARTERS_HI : STARTERS).map((s) => (
                   <button
                     key={s}
                     type="button"
@@ -252,7 +271,7 @@ export function Copilot({
                       m.role === 'user' ? 'rounded-2xl rounded-tr-sm bg-primary px-5 py-3 text-primary-foreground' : 'pt-1 text-foreground'
                     )}
                   >
-                    <MessageBody message={m} />
+                    <MessageBody message={m} canSpeak={!busy || m.id !== messages[messages.length - 1]?.id} />
                   </div>
                 </motion.div>
               ))}
@@ -272,6 +291,25 @@ export function Copilot({
         </div>
 
         <div className="border-t border-border/60 bg-background/50 p-4 backdrop-blur-sm">
+          <div className="mx-auto mb-2 flex max-w-3xl items-center justify-between gap-3">
+            <div role="radiogroup" aria-label="Copilot language" className="inline-flex rounded-full border border-border/60 bg-background p-0.5 text-xs">
+              {(['en', 'hi'] as const).map((l) => (
+                <button
+                  key={l}
+                  type="button"
+                  role="radio"
+                  aria-checked={language === l}
+                  onClick={() => setCopilotLanguage(l)}
+                  className={cn('rounded-full px-3 py-1 transition-colors', language === l ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground')}
+                >
+                  {l === 'en' ? 'English' : 'हिन्दी'}
+                </button>
+              ))}
+            </div>
+            <p className="text-[11px] text-muted-foreground" aria-live="polite">
+              {voice.listening ? (hindi ? 'सुन रहा हूँ… बोलना बंद करने पर सवाल भेज दिया जाएगा' : 'Listening… your question is sent when you stop speaking') : voice.error ?? ''}
+            </p>
+          </div>
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -285,10 +323,21 @@ export function Copilot({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               maxLength={2000}
-              placeholder={aiConfigured ? 'Ask about your portfolio, risks, or goals…' : 'AI key not configured'}
+              placeholder={
+                !aiConfigured ? 'AI key not configured' : hindi ? 'अपने पोर्टफोलियो, जोखिम, टैक्स या लक्ष्यों के बारे में पूछें…' : 'Ask about your portfolio, risks, tax or goals…'
+              }
               disabled={!aiConfigured}
-              className="h-12 w-full rounded-full border border-border/60 bg-background pl-6 pr-14 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-primary/50"
+              lang={hindi ? 'hi' : 'en'}
+              className={cn(
+                'h-12 w-full rounded-full border border-border/60 bg-background pl-6 text-sm shadow-sm outline-none focus-visible:ring-1 focus-visible:ring-primary/50',
+                voice.supported ? 'pr-24' : 'pr-14'
+              )}
             />
+            {voice.supported && !busy && (
+              <div className="absolute right-12">
+                <MicButton listening={voice.listening} onStart={voice.start} onStop={voice.stop} disabled={!aiConfigured} lang={language} />
+              </div>
+            )}
             {busy ? (
               <Button type="button" size="icon" onClick={() => stop()} className="absolute right-1.5 size-9 rounded-full" aria-label="Stop generating">
                 <Square className="size-3.5" />

@@ -10,10 +10,14 @@ export interface ExtractedNumber {
 }
 
 const NUMBER_RE =
-  /(₹|rs\.?|inr)?\s*([-−]\s*)?(\d{1,3}(?:,\d{2,3})+|\d+)(\.\d+)?\s*(%|per\s?cent|lakhs?|lacs?|crores?|cr\b|l\b|k\b|thousand)?/gi;
+  /(₹|rs\.?|inr|रु\.?|रुपये)?\s*([-−]\s*)?(\d{1,3}(?:,\d{2,3})+|\d+)(\.\d+)?\s*(%|per\s?cent|प्रतिशत|lakhs?|lacs?|crores?|cr\b|l\b|k\b|thousand|लाख|करोड़|करोड|हज़ार|हजार)?/gi;
 
-/** Every number in a piece of text, with Indian units (lakh, crore) expanded. */
-export function extractNumbers(text: string): ExtractedNumber[] {
+/** Devanagari digits (०-९) to Western digits, so Hindi answers can be graded too. */
+const westernDigits = (s: string) => s.replace(/[०-९]/g, (d) => String(d.charCodeAt(0) - 0x0966));
+
+/** Every number in a piece of text, with Indian units (lakh, crore, in English or Hindi) expanded. */
+export function extractNumbers(raw: string): ExtractedNumber[] {
+  const text = westernDigits(raw);
   const out: ExtractedNumber[] = [];
   for (const m of text.matchAll(NUMBER_RE)) {
     const [, currency, , int, frac, unitRaw] = m;
@@ -21,17 +25,17 @@ export function extractNumbers(text: string): ExtractedNumber[] {
     if (!Number.isFinite(value)) continue;
     const unit = (unitRaw ?? '').toLowerCase().replace(/\s/g, '');
     let money = Boolean(currency);
-    if (/^lakh|^lac|^l$/.test(unit)) {
+    if (/^lakh|^lac|^l$|^लाख/.test(unit)) {
       value *= 1e5;
       money = true;
-    } else if (/^crore|^cr$/.test(unit)) {
+    } else if (/^crore|^cr$|^करोड/.test(unit)) {
       value *= 1e7;
       money = true;
-    } else if (unit === 'k' || unit === 'thousand') {
+    } else if (unit === 'k' || unit === 'thousand' || unit === 'हज़ार' || unit === 'हजार') {
       value *= 1e3;
       money = true;
     }
-    out.push({ value, percent: unit === '%' || unit.startsWith('per'), money });
+    out.push({ value, percent: unit === '%' || unit.startsWith('per') || unit === 'प्रतिशत', money });
   }
   return out;
 }
