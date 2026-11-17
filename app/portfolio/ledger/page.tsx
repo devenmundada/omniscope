@@ -4,7 +4,7 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { getUserHoldings } from '@/lib/db/portfolio';
 import { getUserLedger } from '@/lib/db/transactions';
 import { todayInIndia } from '@/lib/db/tax';
-import { LedgerView, type LedgerPosition } from '@/components/portfolio/ledger-view';
+import { LedgerView, type LedgerPosition, type LedgerPrefill } from '@/components/portfolio/ledger-view';
 import { taxCategoryFor } from '@/lib/math/tax';
 
 export const metadata = { title: 'Transaction ledger — OmniScope' };
@@ -12,7 +12,15 @@ export const dynamic = 'force-dynamic';
 
 const istDate = (d: Date) => new Date(d.getTime() + 5.5 * 3600_000).toISOString().slice(0, 10);
 
-export default async function LedgerPage() {
+const TYPES = new Set(['BUY', 'SELL', 'BONUS', 'SPLIT']);
+
+export default async function LedgerPage({ searchParams }: { searchParams: Promise<{ symbol?: string; type?: string; quantity?: string }> }) {
+  const sp = await searchParams;
+  const quantity = Number(sp.quantity);
+  const prefill: LedgerPrefill | null =
+    sp.symbol && sp.type && TYPES.has(sp.type) && Number.isFinite(quantity) && quantity > 0
+      ? { symbol: sp.symbol, type: sp.type as LedgerPrefill['type'], quantity }
+      : null;
   if (!isSupabaseConfigured()) redirect('/');
   const supabase = await createClient();
   const {
@@ -59,5 +67,5 @@ export default async function LedgerPage() {
       transactions: txs,
     });
   }
-  return <LedgerView positions={positions} asOf={todayInIndia()} />;
+  return <LedgerView positions={positions} asOf={todayInIndia()} prefill={prefill} />;
 }

@@ -11,6 +11,7 @@ import type { FinancialSnapshot } from '@/lib/ai/snapshot';
 import { formatINRCompact } from '@/lib/format';
 import { BenchmarkChart } from './benchmark-chart';
 import { MarketStory, MarketStorySkeleton } from './market-story';
+import { DashboardAlerts } from '@/components/alerts/dashboard-alerts';
 
 export function RealDashboard({ userId, snapshot }: { userId: string; snapshot: FinancialSnapshot }) {
   const { summary, health, performance, xray } = snapshot;
@@ -154,6 +155,12 @@ export function RealDashboard({ userId, snapshot }: { userId: string; snapshot: 
           </Card>
         </StaggerItem>
       </div>
+
+      <StaggerItem className="mt-4">
+        <Suspense fallback={null}>
+          <DashboardAlerts userId={userId} snapshot={snapshot} />
+        </Suspense>
+      </StaggerItem>
 
       <section className="mt-10 grid gap-4 lg:grid-cols-5">
         <StaggerItem className="flex h-full lg:col-span-3">

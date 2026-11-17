@@ -105,6 +105,13 @@ export function CommandPalette() {
                 <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
                 <span>Tax-smart Rebalancer</span>
               </Command.Item>
+              <Command.Item
+                onSelect={() => runCommand(() => router.push('/alerts'))}
+                className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-2.5 text-sm outline-none aria-selected:bg-accent aria-selected:text-accent-foreground"
+              >
+                <ShieldCheck className="mr-2 h-4 w-4 text-primary" />
+                <span>Alerts</span>
+              </Command.Item>
             </Command.Group>
 
             <Command.Separator className="h-px w-full bg-border" />

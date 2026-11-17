@@ -32,8 +32,16 @@ const inr = (x: number) => formatINRCompact(Math.round(x));
 const dateLabel = (d: string) => new Date(`${d}T00:00:00`).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 const TYPE_LABEL: Record<LedgerType, string> = { BUY: 'Buy', SELL: 'Sell', BONUS: 'Bonus', SPLIT: 'Split' };
 
-export function LedgerView({ positions, asOf }: { positions: LedgerPosition[]; asOf: string }) {
-  const [selectedKey, setSelectedKey] = useState(positions[0]?.key ?? null);
+export interface LedgerPrefill {
+  symbol: string;
+  type: LedgerType;
+  quantity: number;
+}
+
+export function LedgerView({ positions, asOf, prefill }: { positions: LedgerPosition[]; asOf: string; prefill?: LedgerPrefill | null }) {
+  const [selectedKey, setSelectedKey] = useState(
+    (prefill && positions.find((p) => p.symbol === prefill.symbol && p.units > 0)?.key) ?? positions[0]?.key ?? null
+  );
   const selected = positions.find((p) => p.key === selectedKey) ?? null;
   const fy = financialYear(asOf);
 
@@ -89,13 +97,13 @@ export function LedgerView({ positions, asOf }: { positions: LedgerPosition[]; a
             ))}
           </ul>
         </Card>
-        {selected ? <PositionLedger key={selected.key} p={selected} asOf={asOf} /> : <Card className="p-6 text-sm text-muted-foreground">Add holdings on the Portfolio page first.</Card>}
+        {selected ? <PositionLedger key={selected.key} p={selected} asOf={asOf} prefill={prefill?.symbol === selected.symbol ? prefill : null} /> : <Card className="p-6 text-sm text-muted-foreground">Add holdings on the Portfolio page first.</Card>}
       </div>
     </div>
   );
 }
 
-function PositionLedger({ p, asOf }: { p: LedgerPosition; asOf: string }) {
+function PositionLedger({ p, asOf, prefill }: { p: LedgerPosition; asOf: string; prefill: LedgerPrefill | null }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -152,7 +160,13 @@ function PositionLedger({ p, asOf }: { p: LedgerPosition; asOf: string }) {
         {error && <p role="alert" className="mt-3 text-sm text-danger">{error}</p>}
       </Card>
 
-      <AddTransaction p={p} asOf={asOf} pending={pending} onAdd={(tx) => run(() => addTransactionAction(tx))} />
+      {prefill && (
+        <p className="rounded-lg border border-primary/30 bg-primary/5 p-4 text-sm">
+          Alert follow-up: record the {prefill.type === 'BONUS' ? 'bonus' : 'split'} for {p.symbol} below. Enter its allotment date from your broker statement or
+          contract note; the existing {p.units.toLocaleString('en-IN')} units are kept as an opening purchase.
+        </p>
+      )}
+      <AddTransaction p={p} asOf={asOf} pending={pending} prefill={prefill} onAdd={(tx) => run(() => addTransactionAction(tx))} />
 
       {hasLedger && (
         <Card className="overflow-x-auto p-6">
@@ -241,10 +255,11 @@ function PositionLedger({ p, asOf }: { p: LedgerPosition; asOf: string }) {
   );
 }
 
-function AddTransaction({ p, asOf, pending, onAdd }: { p: LedgerPosition; asOf: string; pending: boolean; onAdd: (tx: { accountId: string; instrumentId: string; type: LedgerType; date: string; quantity: number; price: number; charges: number }) => void }) {
-  const [type, setType] = useState<LedgerType>('BUY');
-  const [date, setDate] = useState(asOf);
-  const [quantity, setQuantity] = useState('');
+function AddTransaction({ p, asOf, pending, prefill, onAdd }: { p: LedgerPosition; asOf: string; pending: boolean; prefill: LedgerPrefill | null; onAdd: (tx: { accountId: string; instrumentId: string; type: LedgerType; date: string; quantity: number; price: number; charges: number }) => void }) {
+  const [type, setType] = useState<LedgerType>(prefill?.type ?? 'BUY');
+  // A prefilled bonus or split has no known date: leave it blank so it must be entered.
+  const [date, setDate] = useState(prefill ? '' : asOf);
+  const [quantity, setQuantity] = useState(prefill ? String(prefill.type === 'SPLIT' ? (p.units + prefill.quantity) / p.units : prefill.quantity) : '');
   const [price, setPrice] = useState('');
   const [charges, setCharges] = useState('');
   const priced = type === 'BUY' || type === 'SELL';

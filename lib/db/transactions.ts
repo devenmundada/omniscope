@@ -101,18 +101,7 @@ export interface NewLedgerTx {
   charges: number;
 }
 
-/** Records a transaction after checking the account belongs to the user and the sale is covered. */
-export async function addLedgerTx(userId: string, tx: NewLedgerTx): Promise<{ error?: string }> {
-  const [account] = await db.select({ id: accounts.id }).from(accounts).where(and(eq(accounts.id, tx.accountId), eq(accounts.userId, userId))).limit(1);
-  if (!account) return { error: 'Account not found.' };
-  const [instrument] = await db.select({ id: instruments.id }).from(instruments).where(eq(instruments.id, tx.instrumentId)).limit(1);
-  if (!instrument) return { error: 'Instrument not found.' };
-
-  // Reject a sale (or anything before an earlier sale) that would leave the position negative.
-  const existing = await ledgerFor(userId, tx.accountId, tx.instrumentId);
-  const trial = buildLots([...existing, { id: 'new', ...tx }]);
-  if (trial.errors.length) return { error: trial.errors[trial.errors.length - 1] };
-
+async function insertTx(userId: string, tx: NewLedgerTx): Promise<void> {
   const gross = tx.type === 'BUY' || tx.type === 'SELL' ? tx.quantity * tx.price : 0;
   const net = tx.type === 'BUY' ? gross + tx.charges : tx.type === 'SELL' ? gross - tx.charges : 0;
   await db.insert(transactions).values({
@@ -128,6 +117,51 @@ export async function addLedgerTx(userId: string, tx: NewLedgerTx): Promise<{ er
     netAmount: net.toFixed(2),
     status: 'COMPLETED',
   });
+}
+
+/** The opening purchase that stands for a holding entered without a ledger, or an error if it lacks a date or cost. */
+async function openingFromHolding(userId: string, accountId: string, instrumentId: string): Promise<{ tx?: NewLedgerTx; error?: string } | null> {
+  const [h] = await db
+    .select()
+    .from(holdings)
+    .where(and(eq(holdings.userId, userId), eq(holdings.accountId, accountId), eq(holdings.instrumentId, instrumentId)))
+    .limit(1);
+  if (!h || !(Number(h.units) > 0)) return null;
+  if (!h.firstPurchasedAt) return { error: 'Add a purchase date for this holding first (Tax Centre or Portfolio), so its existing units keep their date.' };
+  if (h.averageAcquisitionCost == null) return { error: 'This holding has no average cost.' };
+  return {
+    tx: { accountId, instrumentId, type: 'BUY', date: istDate(h.firstPurchasedAt), quantity: Number(h.units), price: Number(h.averageAcquisitionCost), charges: 0 },
+  };
+}
+
+/**
+ * Records a transaction after checking the account belongs to the user and the sale is covered.
+ * A holding entered without a ledger is first recorded as one opening purchase, so its existing
+ * units are kept rather than replaced by the new transaction.
+ */
+export async function addLedgerTx(userId: string, tx: NewLedgerTx): Promise<{ error?: string }> {
+  const [account] = await db.select({ id: accounts.id }).from(accounts).where(and(eq(accounts.id, tx.accountId), eq(accounts.userId, userId))).limit(1);
+  if (!account) return { error: 'Account not found.' };
+  const [instrument] = await db.select({ id: instruments.id }).from(instruments).where(eq(instruments.id, tx.instrumentId)).limit(1);
+  if (!instrument) return { error: 'Instrument not found.' };
+
+  const existing: LedgerTx[] = await ledgerFor(userId, tx.accountId, tx.instrumentId);
+  let opening: NewLedgerTx | undefined;
+  if (existing.length === 0) {
+    const o = await openingFromHolding(userId, tx.accountId, tx.instrumentId);
+    if (o?.error) return { error: o.error };
+    if (o?.tx) {
+      opening = o.tx;
+      existing.push({ id: 'opening', ...o.tx });
+    }
+  }
+
+  // Reject a sale (or anything before an earlier sale) that would leave the position negative.
+  const trial = buildLots([...existing, { id: 'new', ...tx }]);
+  if (trial.errors.length) return { error: trial.errors[trial.errors.length - 1] };
+
+  if (opening) await insertTx(userId, opening);
+  await insertTx(userId, tx);
   await recomputeHolding(userId, tx.accountId, tx.instrumentId);
   return {};
 }
@@ -154,13 +188,9 @@ export async function seedLedgerFromHolding(userId: string, holdingId: string): 
   if ((await ledgerFor(userId, h.accountId, h.instrumentId)).length) return { error: 'This holding already has a ledger.' };
   if (!h.firstPurchasedAt) return { error: 'Add a purchase date for this holding first (Tax Centre or Portfolio).' };
   if (h.averageAcquisitionCost == null) return { error: 'This holding has no average cost.' };
-  return addLedgerTx(userId, {
-    accountId: h.accountId,
-    instrumentId: h.instrumentId,
-    type: 'BUY',
-    date: istDate(h.firstPurchasedAt),
-    quantity: Number(h.units),
-    price: Number(h.averageAcquisitionCost),
-    charges: 0,
-  });
+  const o = await openingFromHolding(userId, h.accountId, h.instrumentId);
+  if (!o?.tx) return { error: o?.error ?? 'Holding not found.' };
+  await insertTx(userId, o.tx);
+  await recomputeHolding(userId, h.accountId, h.instrumentId);
+  return {};
 }

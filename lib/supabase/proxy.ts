@@ -11,7 +11,6 @@ const PROTECTED_PREFIXES = [
   '/rebalance',
   '/tax',
   '/alerts',
-  '/api/alerts',
   '/api/export',
   '/evaluation',
   '/report',
