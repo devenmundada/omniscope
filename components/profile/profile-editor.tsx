@@ -387,6 +387,9 @@ export function ProfileEditor({ initialData }: { initialData: UserFullProfile })
           </div>
           <button
             type="button"
+            role="switch"
+            aria-checked={hideBalances}
+            aria-label="Hide balances in public"
             onClick={() => setHideBalances(!hideBalances)}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${
               hideBalances ? 'bg-primary' : 'bg-muted'
