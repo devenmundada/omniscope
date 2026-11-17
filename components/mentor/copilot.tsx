@@ -29,6 +29,8 @@ const TOOL_LABELS: Record<string, string> = {
   stressTestPortfolio: 'Crash-tested your portfolio',
   getTaxEstimate: 'Estimated your capital-gains tax',
   optimizeForGoals: 'Ran the goal-based optimiser',
+  planTaxSmartRebalance: 'Planned a tax-smart rebalance',
+  getAlerts: 'Checked what needs your attention',
 };
 
 const STARTERS_HI = [
@@ -61,13 +63,83 @@ interface WhatIfOutput {
   requiredSipAt10PctINR?: number;
 }
 
-function ToolChip({ name, done }: { name: string; done: boolean }) {
+const MAX_TRACE_CHARS = 6000;
+
+function traceJson(value: unknown): string {
+  const text = JSON.stringify(value, null, 2) ?? '';
+  return text.length > MAX_TRACE_CHARS ? `${text.slice(0, MAX_TRACE_CHARS)}\n… (${(text.length - MAX_TRACE_CHARS).toLocaleString('en-IN')} more characters)` : text;
+}
+
+/** A tool step, expandable to show exactly what the Copilot asked for and what the engine returned. */
+function ToolChip({ name, done, input, output }: { name: string; done: boolean; input?: unknown; output?: unknown }) {
+  const [open, setOpen] = useState(false);
+  const hasInput = input != null && typeof input === 'object' && Object.keys(input as object).length > 0;
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground">
-      {done ? <Check className="size-3 text-emerald-700" /> : <Loader2 className="size-3 animate-spin" />}
-      <Wrench className="size-3" />
-      {TOOL_LABELS[name] ?? name}
-    </span>
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        disabled={!done}
+        className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/70 px-2.5 py-1 text-[11px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-foreground disabled:hover:border-border/60"
+      >
+        {done ? <Check className="size-3 text-emerald-700" /> : <Loader2 className="size-3 animate-spin" />}
+        <Wrench className="size-3" />
+        {TOOL_LABELS[name] ?? name}
+        {done && <span className="ml-1 text-primary">{open ? 'Hide working' : 'Show working'}</span>}
+      </button>
+      {open && (
+        <div className="mt-2 max-w-full rounded-lg border border-border/60 bg-muted/40 p-3 text-[11px]">
+          <p className="font-medium text-foreground">
+            Tool <code>{name}</code>{hasInput ? ' called with' : ' (no inputs)'}
+          </p>
+          {hasInput && <pre className="mt-1 overflow-x-auto whitespace-pre-wrap font-mono text-muted-foreground">{traceJson(input)}</pre>}
+          <p className="mt-2 font-medium text-foreground">Engine result the answer was written from</p>
+          {output === undefined ? (
+            <p className="mt-1 text-muted-foreground">Results are kept only for answers given in this session.</p>
+          ) : (
+            <pre className="mt-1 max-h-72 overflow-auto whitespace-pre-wrap font-mono text-muted-foreground">{traceJson(output)}</pre>
+          )}
+          <p className="mt-2 text-muted-foreground">Every figure in the answer should appear here; the model is instructed never to invent numbers.</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+interface RebalanceOutput {
+  error?: string;
+  target?: string;
+  gapToTargetTodayPct?: number;
+  recommendedPlan?: { gapClosedPct: number; extraTaxINR: number; tradingCostsINR: number };
+  oldestFirstForSameGap?: { taxINR: number; totalCostINR: number } | string;
+}
+
+function RebalanceCard({ out }: { out: RebalanceOutput }) {
+  if (out.error || !out.recommendedPlan) return null;
+  const plan = out.recommendedPlan;
+  const naive = typeof out.oldestFirstForSameGap === 'object' ? out.oldestFirstForSameGap : null;
+  return (
+    <div className="mt-2 rounded-xl border border-primary/30 bg-primary/5 p-4">
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-primary">Tax-smart rebalance · {out.target}</p>
+      <div className="mt-2 flex flex-wrap items-end gap-5">
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">Gap closed</p>
+          <p className="font-serif text-3xl tnum text-foreground">{plan.gapClosedPct}%</p>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase text-muted-foreground">Tax + charges</p>
+          <p className="font-serif text-2xl tnum text-foreground">{formatINRCompact(plan.extraTaxINR + plan.tradingCostsINR)}</p>
+        </div>
+        {naive && (
+          <div>
+            <p className="text-[10px] uppercase text-muted-foreground">Oldest-first, same result</p>
+            <p className="font-serif text-2xl tnum text-muted-foreground">{formatINRCompact(naive.totalCostINR)}</p>
+          </div>
+        )}
+        <Link href="/rebalance" className="ml-auto text-xs font-medium text-primary hover:underline">Open the plan →</Link>
+      </div>
+    </div>
   );
 }
 
@@ -120,12 +192,13 @@ function MessageBody({ message, canSpeak }: { message: UIMessage; canSpeak?: boo
         }
         if (part.type.startsWith('tool-')) {
           const name = part.type.slice(5);
-          const p = part as unknown as { state: string; output?: unknown };
+          const p = part as unknown as { state: string; input?: unknown; output?: unknown };
           const done = p.state === 'output-available';
           return (
             <div key={i}>
-              <ToolChip name={name} done={done} />
+              <ToolChip name={name} done={done} input={p.input} output={p.output} />
               {done && name === 'simulateGoalChange' && <WhatIfCard out={p.output as WhatIfOutput} />}
+              {done && name === 'planTaxSmartRebalance' && <RebalanceCard out={p.output as RebalanceOutput} />}
             </div>
           );
         }

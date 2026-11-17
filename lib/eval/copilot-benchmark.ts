@@ -235,6 +235,35 @@ export const QUESTIONS: Question[] = [
     }),
   },
   {
+    id: 'rebalance',
+    category: 'Tax',
+    question: 'If I rebalanced towards the lowest-risk mix in a tax-smart way, how much of the gap would the recommended plan close, and how far from the target am I today?',
+    expectedTools: ['planTaxSmartRebalance'],
+    truth: async (call) => {
+      const r = await call('planTaxSmartRebalance', { target: 'minVariance' });
+      return {
+        facts: [
+          { label: 'Gap closed', value: num((r.recommendedPlan as Row).gapClosedPct), unit: 'pct', tolerance: 1 },
+          { label: 'Gap today', value: num(r.gapToTargetTodayPct), unit: 'pct', tolerance: 0.1 },
+        ],
+      };
+    },
+  },
+  {
+    id: 'alerts',
+    category: 'Health & goals',
+    question: 'Is there anything in my finances that needs my attention right now?',
+    expectedTools: ['getAlerts'],
+    truth: async (call) => {
+      const r = await call('getAlerts');
+      const top = ((r.alerts as Row[]) ?? []).find((a) => a.severity === 'act') ?? ((r.alerts as Row[]) ?? [])[0];
+      if (!top) return { facts: [] };
+      // The subject of the most urgent alert: a ticker or a goal name.
+      const subject = String(top.title).split(/[: ]| is | looks /)[0];
+      return { facts: [], checks: [{ label: `Mentions the most urgent alert (${subject})`, must: new RegExp(subject.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i') }] };
+    },
+  },
+  {
     id: 'hiValue',
     category: 'Hindi',
     language: 'hi',

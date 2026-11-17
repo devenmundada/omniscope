@@ -96,8 +96,11 @@ export async function POST(req: NextRequest) {
           s.toolCalls.map((c) => ({ id: c.toolCallId, toolName: c.toolName, args: (c.input ?? {}) as Record<string, unknown> }))
         );
         const finalText = event.steps.map((s) => s.text).filter(Boolean).join('\n\n').trim() || event.text;
+        // Kept so "Show working" still works when the conversation is reopened.
+        const toolResults = event.steps.flatMap((s) => s.toolResults.map((r) => ({ toolCallId: r.toolCallId, result: r.output as unknown })));
         await appendMessage(conversationId, 'assistant', finalText || '(no text)', {
           toolCalls,
+          toolResults,
           metadata: { model: PRIMARY_MODEL_ID },
         });
       } catch (err) {

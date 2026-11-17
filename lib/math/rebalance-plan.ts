@@ -50,9 +50,9 @@ export function rebalanceInput(data: RebalanceData, weights: number[], cash: num
 }
 
 /** A compact summary of the tax-smart plan (used by the Copilot). */
-export function summarisePlan(data: RebalanceData, target: RebalanceTarget, cash: number) {
+export function summarisePlan(data: RebalanceData, target: RebalanceTarget, cash: number, locked?: boolean[]) {
   const weights = targetWeights(data, target);
-  const input = rebalanceInput(data, weights, cash);
+  const input = rebalanceInput(data, weights, cash, locked);
   const result = rebalancePath(input);
   const plan = rebalancePlan(input, result, result.recommendedStep);
   const full = rebalancePlan(input, result, result.moves.length);
@@ -60,3 +60,6 @@ export function summarisePlan(data: RebalanceData, target: RebalanceTarget, cash
   const naiveSame = naiveCostAt(result, plan.te);
   return { weights, input, result, plan, full, naiveFull, naiveSame };
 }
+
+/** Gold bonds (tax-free at maturity) and deposits (break penalties) are kept out of sales by default. */
+export const defaultLocks = (data: RebalanceData) => data.assets.map((a) => a.category === 'sgb' || a.category === 'deposit');

@@ -166,7 +166,7 @@ export default async function MethodologyPage() {
         <Card className="p-5">
           <SectionTitle title="How the AI is kept honest" />
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
-            <li>The Copilot answers by calling twelve tools that read your verified data or run the engines above; it is told never to state a figure a tool can provide.</li>
+            <li>The Copilot answers by calling fourteen tools that read your verified data or run the engines above; it is told never to state a figure a tool can provide.</li>
             <li>The Statement Reader returns a schema-validated object (Zod), and every extracted holding is matched to the catalogue by ISIN before you confirm it.</li>
             <li>Market summaries cite headline IDs that are checked against the fetched news; IDs never leak into the text.</li>
             <li>Gemini 3.5 Flash-Lite with a 3.1 Flash-Lite fallback, a time budget per model, and no slow retries, so an answer or a clear error always arrives.</li>

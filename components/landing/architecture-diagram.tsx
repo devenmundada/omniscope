@@ -6,7 +6,7 @@ const stages: Array<{ icon: LucideIcon; title: string; items: string[] }> = [
   { icon: Workflow, title: 'Ingestion', items: ['Daily Vercel cron', 'Bonus & split cleaning', 'Fallback chain per source', 'AI statement extraction'] },
   { icon: Database, title: 'Storage', items: ['Postgres on Supabase (Mumbai)', 'Per-user row isolation', '2-year daily price history', 'AI insight cache'] },
   { icon: Cpu, title: 'Engines', items: ['XIRR (Newton–Raphson)', 'Monte Carlo goals', 'Risk: VaR, beta, drawdown', 'Markowitz optimiser', 'Capital-gains tax'] },
-  { icon: Bot, title: 'AI layer', items: ['Gemini with 12 tools', 'Grounded in your data', 'Model fallback & time budgets', 'Advice guardrails'] },
+  { icon: Bot, title: 'AI layer', items: ['Gemini with 14 tools', 'Grounded in your data', 'Model fallback & time budgets', 'Advice guardrails'] },
   { icon: MonitorSmartphone, title: 'You', items: ['Dashboard & Risk Lab', 'Goals & health score', 'Copilot chat', 'Market news, explained'] },
 ];
 

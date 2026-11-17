@@ -325,7 +325,7 @@ The Copilot answers tax questions through the `getTaxEstimate` tool.
 
 ```
 Sources                Ingestion                 Storage                 Engines                    AI layer                 User
-NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 12 tools   ──►  Dashboard
+NSE bhavcopy     ──►   daily Vercel cron   ──►   Postgres (Supabase) ──► XIRR (Newton–Raphson) ──►  Gemini + 14 tools   ──►  Dashboard
 AMFI NAV file          bonus/split cleaning      2-year price history    Monte Carlo goals          grounded answers         Risk Lab
 gold-api + ECB FX      source fallbacks          per-user holdings       Health score, HHI          model fallback           Goals, Health
 Google News RSS        AI statement reader       AI insight cache        Risk, Markowitz, stress    advice guardrails        Copilot chat

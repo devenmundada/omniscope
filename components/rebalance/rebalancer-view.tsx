@@ -8,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { PageHeader } from '@/components/omni/primitives';
 import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition';
 import { naiveCostAt, rebalancePath, rebalancePlan } from '@/lib/math/rebalance';
-import { TARGET_LABELS, rebalanceInput, targetWeights, type RebalanceData, type RebalanceTarget } from '@/lib/math/rebalance-plan';
+import { TARGET_LABELS, defaultLocks, rebalanceInput, targetWeights, type RebalanceData, type RebalanceTarget } from '@/lib/math/rebalance-plan';
 import { evaluate } from '@/lib/math/optimizer';
 import { BUCKET_LABELS } from '@/lib/math/tax';
 import { formatINRCompact } from '@/lib/format';
@@ -36,7 +36,7 @@ export function RebalancerView({ data, initialTarget }: { data: RebalanceData; i
   const [cashInput, setCashInput] = useState(0);
   const cash = useDeferredValue(cashInput);
   // Gold bonds are tax-free if held to maturity and deposits carry break penalties, so start them locked.
-  const [locked, setLocked] = useState<boolean[]>(() => data.assets.map((a) => a.category === 'sgb' || a.category === 'deposit'));
+  const [locked, setLocked] = useState<boolean[]>(() => defaultLocks(data));
   const lockedDeferred = useDeferredValue(locked);
 
   const weights = useMemo(() => targetWeights(data, target), [data, target]);

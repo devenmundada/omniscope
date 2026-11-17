@@ -60,7 +60,14 @@ export default async function MentorPage({ searchParams }: { searchParams: Promi
 
   const initialMessages: UIMessage[] = (loaded?.messages ?? [])
     .filter((m) => m.role === 'user' || m.role === 'assistant')
-    .map((m) => ({ id: m.id, role: m.role as 'user' | 'assistant', parts: [{ type: 'text', text: m.content }] }));
+    .map((m) => {
+      // Tool steps with stored results come back as tool parts, so their working can be expanded again.
+      const results = new Map((m.toolResults ?? []).map((r) => [r.toolCallId, r.result]));
+      const toolParts = (m.toolCalls ?? [])
+        .filter((t) => results.has(t.id))
+        .map((t) => ({ type: `tool-${t.toolName}`, toolCallId: t.id, state: 'output-available', input: t.args, output: results.get(t.id) }));
+      return { id: m.id, role: m.role as 'user' | 'assistant', parts: [...toolParts, { type: 'text', text: m.content }] } as UIMessage;
+    });
 
   return (
     <div className="flex h-[calc(100svh-6rem)] flex-col">

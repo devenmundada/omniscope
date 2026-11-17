@@ -48,13 +48,18 @@ export async function appendMessage(
   conversationId: string,
   role: 'user' | 'assistant',
   content: string,
-  extra?: { toolCalls?: Array<{ id: string; toolName: string; args: Record<string, unknown> }>; metadata?: Record<string, unknown> }
+  extra?: {
+    toolCalls?: Array<{ id: string; toolName: string; args: Record<string, unknown> }>;
+    toolResults?: Array<{ toolCallId: string; result: unknown }>;
+    metadata?: Record<string, unknown>;
+  }
 ) {
   await db.insert(aiMessages).values({
     conversationId,
     role,
     content,
     toolCalls: extra?.toolCalls ?? null,
+    toolResults: extra?.toolResults ?? null,
     metadata: extra?.metadata ?? {},
   });
   await db.update(aiConversations).set({ updatedAt: new Date() }).where(eq(aiConversations.id, conversationId));

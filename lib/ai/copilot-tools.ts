@@ -5,9 +5,12 @@ import { computeGoalProjectionDetails } from '@/lib/math/financial-projections';
 import { simulateGoal } from '@/lib/math/monte-carlo';
 import { getRiskReport, type RiskReport } from '@/lib/db/risk';
 import { getTaxCentreData } from '@/lib/db/tax';
+import { getRebalanceData } from '@/lib/db/rebalance';
+import { getAlerts } from '@/lib/db/alerts';
+import { TARGET_LABELS, defaultLocks, summarisePlan } from '@/lib/math/rebalance-plan';
 import { goalSeed } from '@/lib/db/goal-optimizer';
 import { goalPlan, goalProbability, sipForProbability, type GoalInput } from '@/lib/math/goal-optimizer';
-import { CATEGORY_LABELS, classifyPosition, computeTax, lossHarvest, ltcgHarvestPlan, TAX_RULES, waitToSave } from '@/lib/math/tax';
+import { BUCKET_LABELS, CATEGORY_LABELS, classifyPosition, computeTax, lossHarvest, ltcgHarvestPlan, TAX_RULES, waitToSave } from '@/lib/math/tax';
 import { efficientFrontier, evaluate, frontierAtVolatility, HISTORICAL_SCENARIOS, rebalanceTrades, stressTest } from '@/lib/math/optimizer';
 import {
   goalsDigest,
@@ -32,6 +35,74 @@ export function buildCopilotTools(snapshot: FinancialSnapshot) {
   const noRisk = { error: 'Not enough verified price history to analyse risk yet. Add holdings and sync prices on the Portfolio page.' };
 
   return {
+    planTaxSmartRebalance: tool({
+      description:
+        'Tax-smart rebalancing plan: the cheapest way (capital-gains tax plus 0.1% charges a side) to move the portfolio to an optimiser target mix. New cash is invested first; then losses and gains inside the Rs 1.25 lakh exemption are sold before short-term gains, from the cheapest demat account under FIFO. Returns the gap to the target (active risk), the recommended plan (90% of the reachable gap closed), its trades, the lots to sell, the extra tax, what selling oldest-first would cost for the same result, the full-rebalance cost, and lots worth waiting for. Gold bonds and deposits are not sold unless allowSellingGoldBonds is true. Use for "how should I rebalance", "what would rebalancing cost in tax", "what should I sell to reach the optimal mix".',
+      inputSchema: z.object({
+        target: z.enum(['maxSharpe', 'minVariance', 'sameRisk']).optional().describe('maxSharpe = best risk-adjusted (default), minVariance = lowest risk, sameRisk = same risk with more return'),
+        newCashINR: z.number().nonnegative().max(100_000_000).optional().describe('New money to invest alongside the rebalance'),
+        allowSellingGoldBonds: z.boolean().optional(),
+      }),
+      execute: async ({ target = 'maxSharpe', newCashINR = 0, allowSellingGoldBonds = false }) => {
+        const data = await getRebalanceData(snapshot.summary.userId).catch(() => null);
+        if (!data) return noRisk;
+        const locks = allowSellingGoldBonds ? data.assets.map((a) => a.category === 'deposit') : defaultLocks(data);
+        const { weights, input, result, plan, full, naiveFull, naiveSame } = summarisePlan(data, target, newCashINR, locks);
+        const { mu, cov, riskFree } = data.optimizer;
+        const before = evaluate(data.assets.map((a) => a.weight), mu, cov, riskFree);
+        const after = evaluate(plan.weights, mu, cov, riskFree);
+        const r0 = (x: number) => Math.round(x);
+        return {
+          target: TARGET_LABELS[target],
+          asOf: data.asOf,
+          newCashINR: r0(newCashINR),
+          gapToTargetTodayPct: Math.round(result.te0 * 10000) / 100,
+          gapMeaning: 'Active risk: the typical yearly difference between this portfolio and the target mix (annualised tracking error).',
+          recommendedPlan: {
+            gapClosedPct: Math.round(plan.captured * 100),
+            gapAfterPct: Math.round(plan.te * 10000) / 100,
+            extraTaxINR: r0(plan.extraTax),
+            tradingCostsINR: r0(plan.tradingCost),
+            amountTradedINR: r0(plan.turnover),
+            trades: data.assets
+              .map((a, i) => ({ symbol: a.symbol, nowPct: pct1(a.value / result.total), targetPct: pct1(weights[i]), afterPct: pct1(plan.weights[i]), tradeINR: r0(plan.trades[i]) }))
+              .filter((t) => Math.abs(t.tradeINR) >= 100 || (t.targetPct ?? 0) > 0),
+            lotsToSell: plan.sales.map((x) => ({
+              symbol: x.symbol,
+              account: x.account,
+              boughtOn: x.purchaseDate,
+              units: Math.round(x.units * 1000) / 1000,
+              saleValueINR: r0(x.saleValue),
+              gainINR: r0(x.gain),
+              taxedAs: x.bucket ? (x.gain < 0 ? `${x.term}-term loss` : BUCKET_LABELS[x.bucket]) : 'not a capital gain',
+            })),
+            worthWaitingFor: plan.waits.map((w) => ({ symbol: w.symbol, account: w.account, longTermOn: w.longTermOn, days: w.days, taxSavedINR: r0(w.saving) })),
+            expectedReturnPct: { now: pct1(before.expectedReturn), after: pct1(after.expectedReturn) },
+            riskPct: { now: pct1(before.volatility), after: pct1(after.volatility) },
+          },
+          oldestFirstForSameGap: naiveSame ? { taxINR: r0(naiveSame.tax), totalCostINR: r0(naiveSame.cost) } : 'Selling oldest-first cannot get this close to the target with these locks.',
+          fullRebalance: { taxSmartTaxINR: r0(full.extraTax), taxSmartTotalCostINR: r0(full.extraTax + full.tradingCost), oldestFirstTaxINR: r0(naiveFull.tax), oldestFirstTotalCostINR: r0(naiveFull.cost) },
+          notSold: data.assets.filter((_, i) => input.locked?.[i]).map((a) => a.symbol),
+          page: '/rebalance',
+          notes: 'Model output for learning, not advice. Exit loads, STT and surcharge are not modelled. Gold bonds are kept because their gain is tax-free if held to maturity.',
+        };
+      },
+    }),
+    getAlerts: tool({
+      description:
+        'What needs the user’s attention now, from their own data: lots about to turn long-term, unused tax-free LTCG allowance before 31 March, losses that could cancel tax due, holdings above 25% of the portfolio, holdings 20%+ below their 1-year high, goals with low Monte Carlo odds, a thin emergency fund, stale or missing prices, missing purchase dates, and bonuses or splits that look unrecorded. Each alert has a severity (act, watch, info) and the page that shows the working. Use for "what should I look at", "anything I should do", "any alerts" or a general check-up.',
+      inputSchema: z.object({}),
+      execute: async () => {
+        const r = await getAlerts(snapshot.summary.userId, snapshot).catch(() => null);
+        if (!r) return { error: 'Alerts could not be computed right now.' };
+        return {
+          asOf: r.asOf,
+          count: r.alerts.length,
+          alerts: r.alerts.map((a) => ({ severity: a.severity, area: a.kind, title: a.title, detail: a.body, dueDate: a.dueDate ?? null, amountINR: a.amountINR ?? null, page: a.href })),
+          page: '/alerts',
+        };
+      },
+    }),
     optimizeForGoals: tool({
       description:
         'Goal-based optimiser: for every portfolio on the user\u2019s efficient frontier, estimates each goal\u2019s Monte Carlo probability of success and finds the mix with the best odds per goal and for all goals together. Returns current vs best probability, the return each goal needs, the best mix\u2019s return and risk, and the SIP needed for an 80% chance. Use for "which mix gives my goals the best chance", "should I take more or less risk for my goal" or similar. Present mixes as model output, not advice.',
@@ -350,4 +421,6 @@ export const COPILOT_TOOL_LABELS: Record<string, string> = {
   stressTestPortfolio: 'Crash-tested your portfolio',
   getTaxEstimate: 'Estimated your capital-gains tax',
   optimizeForGoals: 'Ran the goal-based optimiser',
+  planTaxSmartRebalance: 'Planned a tax-smart rebalance',
+  getAlerts: 'Checked what needs your attention',
 };
