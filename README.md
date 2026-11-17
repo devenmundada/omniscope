@@ -375,10 +375,11 @@ The `/methodology` page documents every data source (with live freshness), every
 
 # 🧪 Quality
 
-The `/evaluation` page runs three reproducible benchmarks on the live system:
+The `/evaluation` page runs four reproducible benchmarks on the live system:
 
 - **AI Copilot**: 33 questions (28 English, 5 Hindi) across portfolio, health, goals, risk, tax, rebalancing, alerts, calculations and guardrails. Expected figures come from calling the same tools the Copilot uses, so the benchmark measures whether answers faithfully report computed numbers; it also checks tool selection, refusals and latency.
 - **Statement Reader**: six synthetic documents (CAS PDF, broker CSV, MF statement with transactions, broker report, informal email, and a non-statement) with known answers, scored field by field (name, ISIN, quantity, average cost, total cost).
+- **Tax-smart rebalancing study**: 200 seeded synthetic portfolios (lots across up to three accounts, gains and losses) moved towards random targets; the tax-smart path and oldest-first selling are compared at the same alignment. At 90% of the gap closed the tax-smart plan pays a median 79% less tax (₹2.27 lakh vs ₹5.04 lakh in total) and is no costlier in 92.5% of portfolios.
 - **Optimiser backtest**: a five-year walk-forward test with monthly rebalancing, a one-year training window, 0.1% trading costs and no look-ahead, comparing the max-Sharpe and minimum-variance optimisers with the current mix, equal weight and the Nifty 50.
 
 Every table can be copied as Markdown for reports.

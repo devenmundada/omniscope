@@ -12,6 +12,7 @@ import type { StoredRun } from '@/lib/eval/store';
 import type { BacktestReport } from '@/lib/db/backtest';
 import { cn } from '@/lib/utils';
 import { BacktestPanel } from './backtest-panel';
+import { RebalanceStudyPanel } from './rebalance-study-panel';
 import { CopyMarkdown } from './copy-markdown';
 
 export interface EvaluationProps {
@@ -129,7 +130,7 @@ export function EvaluationView(props: EvaluationProps) {
       <PageHeader
         eyebrow="Evaluation"
         title="How do we know it works?"
-        question="Three reproducible benchmarks: the AI Copilot against figures computed by the engines, the Statement Reader against documents with known answers, and the optimiser in a five-year walk-forward backtest."
+        question="Four reproducible benchmarks: the AI Copilot against figures computed by the engines, the Statement Reader against documents with known answers, the optimiser in a five-year walk-forward backtest, and the tax-smart rebalancer on 200 simulated portfolios."
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -273,6 +274,15 @@ export function EvaluationView(props: EvaluationProps) {
         meta={props.backtest ? `${props.backtest.years.toFixed(1)} years out of sample` : undefined}
       >
         {props.backtest ? <BacktestPanel report={props.backtest} /> : <p className="text-sm text-muted-foreground">Needs at least eighteen months of price history for your holdings.</p>}
+      </Section>
+
+      <Section
+        icon={<FlaskConical className="size-4" />}
+        title="Tax-smart rebalancing study"
+        subtitle="Does the rebalancer really save tax? 200 synthetic portfolios (equity, gold and debt funds in lots across up to three accounts, a mix of gains and losses) are moved towards random target mixes, by the tax-smart path and by selling oldest units first, and compared at the same closeness to the target."
+        meta="Indian rules as of FY 2026-27: FIFO per account, set-off, ₹1.25 lakh exemption, 4% cess, 0.1% charges a side."
+      >
+        <RebalanceStudyPanel />
       </Section>
     </div>
   );

@@ -51,6 +51,7 @@ export function RebalancerView({ data, initialTarget }: { data: RebalanceData; i
   const plan = useMemo(() => rebalancePlan(input, result, step), [input, result, step]);
   const full = useMemo(() => rebalancePlan(input, result, result.moves.length), [input, result]);
   const naiveSame = naiveCostAt(result, plan.te);
+  const reachable = result.te0 > 0 ? 1 - result.smart[result.smart.length - 1].te / result.te0 : 1;
   const naiveFull = result.naive[result.naive.length - 1];
   const saved = naiveSame ? naiveSame.cost - (plan.extraTax + plan.tradingCost) : null;
 
@@ -134,7 +135,9 @@ export function RebalancerView({ data, initialTarget }: { data: RebalanceData; i
             <Stat
               label="This plan closes"
               value={pct(plan.captured, 0)}
-              note={`of the gap, for ${inr(plan.extraTax)} tax and ${inr(plan.tradingCost)} trading costs.`}
+              note={`of the gap, for ${inr(plan.extraTax)} tax and ${inr(plan.tradingCost)} trading costs.${
+                reachable < 0.98 ? ` Locked holdings leave ${pct(1 - reachable, 0)} of the gap out of reach.` : ''
+              }`}
               tone="primary"
             />
             <Stat
