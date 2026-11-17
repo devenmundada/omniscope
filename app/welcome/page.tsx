@@ -58,7 +58,8 @@ const steps = [
 const dateLabel = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' }) : '—';
 
-export default async function WelcomePage() {
+export default async function WelcomePage({ searchParams }: { searchParams: Promise<{ deleted?: string }> }) {
+  const { deleted } = await searchParams;
   const stats = await getPublicStats();
   const hero = heroData();
   const nse = stats?.sources.find((s) => s.source === 'NSE_EOD');
@@ -82,6 +83,13 @@ export default async function WelcomePage() {
           </nav>
         </div>
       </header>
+      {deleted === '1' && (
+        <div role="status" className="border-b border-border bg-muted/60">
+          <p className="mx-auto max-w-6xl px-4 py-3 text-sm text-foreground sm:px-6">
+            Your account and all its data have been permanently deleted. Thank you for trying OmniScope.
+          </p>
+        </div>
+      )}
 
       <main>
         <section className="relative overflow-hidden">
@@ -195,6 +203,8 @@ export default async function WelcomePage() {
             <Link href="/methodology" className="hover:text-foreground">Methodology</Link>
             <span className="mx-2">·</span>
             <Link href="/demo" className="hover:text-foreground">Sample dashboard</Link>
+            <span className="mx-2">·</span>
+            <Link href="/privacy" className="hover:text-foreground">Privacy</Link>
           </p>
         </div>
       </footer>

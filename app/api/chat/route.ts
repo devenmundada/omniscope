@@ -8,6 +8,7 @@ import { buildCopilotTools } from '@/lib/ai/copilot-tools';
 import { copilotSystemPrompt, type CopilotLanguage } from '@/lib/ai/copilot-prompt';
 import { appendMessage, ensureConversation } from '@/lib/db/conversations';
 import { logger } from '@/lib/logger';
+import { burstLimit, copilotRateLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -37,6 +38,14 @@ export async function POST(req: NextRequest) {
   }
   if (!isAiConfigured()) {
     return NextResponse.json({ error: AI_NOT_CONFIGURED_MESSAGE }, { status: 503 });
+  }
+  // Fair use: a burst cap per instance, then hourly and daily caps from stored questions.
+  if (burstLimit(`chat:${user.id}`, 8, 60_000)) {
+    return NextResponse.json({ error: 'Too many questions in a minute. Please wait a moment.' }, { status: 429, headers: { 'Retry-After': '60' } });
+  }
+  const limit = await copilotRateLimit(user.id).catch(() => ({ limited: false as const }));
+  if (limit.limited) {
+    return NextResponse.json({ error: limit.message }, { status: 429, headers: { 'Retry-After': String(limit.retryAfterS) } });
   }
 
   let body: { id?: string; messages?: UIMessage[]; language?: string };

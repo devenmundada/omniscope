@@ -4,6 +4,7 @@ import { getProfileForUser } from '@/lib/db/profile';
 import { PageHeader } from '@/components/omni/primitives';
 import { StaggerContainer, StaggerItem } from '@/components/omni/page-transition';
 import { ProfileEditor } from '@/components/profile/profile-editor';
+import { DataRights } from '@/components/profile/data-rights';
 
 export const metadata = {
   title: 'Personal Financial Profile — OmniScope',
@@ -36,6 +37,10 @@ export default async function ProfilePage() {
 
       <StaggerItem>
         <ProfileEditor initialData={profile} />
+      </StaggerItem>
+
+      <StaggerItem>
+        <DataRights />
       </StaggerItem>
     </StaggerContainer>
   );

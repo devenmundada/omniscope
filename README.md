@@ -307,6 +307,42 @@ The Copilot answers tax questions through the `getTaxEstimate` tool.
 
 ---
 
+## ⚖️ Tax-Smart Rebalancer
+
+The optimiser says where to go; `/rebalance` works out the cheapest way to get there under Indian tax rules.
+
+- Distance from the target measured as **active risk** (tracking error) with the optimiser's own covariance: TE = √((w − w*)ᵀ Σ (w − w*))
+- A greedy marginal-cost path: new cash is invested first (no tax), then each chunk is sold where it buys the most risk reduction per rupee of tax and charges (0.1% a side), so losses and gains inside the ₹1.25 lakh exemption go before short-term gains
+- FIFO within each demat account, as the rules require, with the cheapest account chosen; tax from the same set-off and exemption engine as the Tax Centre, on top of gains already booked this year
+- A cost-versus-alignment chart against the naive approach (selling oldest units first), a slider along the path, lot-by-lot sales, and lots worth waiting for
+- Gold Bonds (tax-free at maturity) and deposits start locked; any holding can be locked
+
+The Copilot plans rebalances through the `planTaxSmartRebalance` tool.
+
+---
+
+## 🔔 Smart Alerts
+
+A bell in the header, a dashboard strip and an `/alerts` page with what deserves attention, each linked to the page that shows the working:
+
+- Tax: lots about to turn long-term, the unused ₹1.25 lakh allowance as 31 March nears, losses that could cancel tax already due
+- Risk: one holding above 25% of the portfolio, a fall of 20% or more from the 1-year high
+- Goals under a 65% Monte Carlo chance (under 50% to act), an emergency fund under target
+- Data quality: stale or missing prices, missing purchase dates, and **bonuses or splits never recorded** (detected when the cost paid is a clean multiple of the adjusted price on the purchase date), with a one-click link to fix them in the ledger
+
+The Copilot reads them through the `getAlerts` tool. Each Copilot tool step can be expanded to show its inputs and the exact engine result the answer was written from.
+
+---
+
+## 🔒 Privacy, Security and Data Rights
+
+- `/privacy` notice: what is stored and why, where it is processed (Mumbai), what Gemini sees, cookies, retention
+- Download everything stored about you as JSON, or delete the account and all its data in one cascading operation (DPDP Act, 2023)
+- Row-level security on every table, Content Security Policy and security headers, fair-use limits on AI requests
+- Installable web app (manifest and icons), sitemap, robots rules and social preview image
+
+---
+
 # 🚀 Tech Stack
 
 | Layer | Technology |
@@ -341,7 +377,7 @@ The `/methodology` page documents every data source (with live freshness), every
 
 The `/evaluation` page runs three reproducible benchmarks on the live system:
 
-- **AI Copilot**: 26 questions across portfolio, health, goals, risk, tax, calculations and guardrails. Expected figures come from calling the same tools the Copilot uses, so the benchmark measures whether answers faithfully report computed numbers; it also checks tool selection, refusals and latency.
+- **AI Copilot**: 33 questions (28 English, 5 Hindi) across portfolio, health, goals, risk, tax, rebalancing, alerts, calculations and guardrails. Expected figures come from calling the same tools the Copilot uses, so the benchmark measures whether answers faithfully report computed numbers; it also checks tool selection, refusals and latency.
 - **Statement Reader**: six synthetic documents (CAS PDF, broker CSV, MF statement with transactions, broker report, informal email, and a non-statement) with known answers, scored field by field (name, ISIN, quantity, average cost, total cost).
 - **Optimiser backtest**: a five-year walk-forward test with monthly rebalancing, a one-year training window, 0.1% trading costs and no look-ahead, comparing the max-Sharpe and minimum-variance optimisers with the current mix, equal weight and the Nifty 50.
 
@@ -392,13 +428,16 @@ Every screen should answer
 - AI Copilot with tool calling, AI Statement Reader, AI market analyst
 - Risk Lab: risk metrics, Markowitz optimiser, crash tests
 - Tax Centre: capital-gains estimates, gain and loss harvesting
-- Public landing page and methodology page, command palette
+- Transaction ledger with FIFO lots, bonuses and splits
+- Goal-based optimiser, tax-smart rebalancer, smart alerts
+- Hindi voice Copilot with a traceable "show working" view
+- Printable report, privacy notice with data export and deletion
+- Public landing page and methodology page, command palette, installable app
 
 ## 🚧 Next
 
-- Lot-level (FIFO) tracking from transaction history for exact holding periods
 - Account Aggregator and broker integrations
-- Price alerts and weekly email reports
+- Weekly email reports and alert e-mails
 
 ---
 

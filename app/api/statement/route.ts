@@ -4,6 +4,7 @@ import { isSupabaseConfigured } from '@/lib/env';
 import { AI_NOT_CONFIGURED_MESSAGE, aiErrorStatus, describeAiError, FALLBACK_MODEL_ID, isAiConfigured } from '@/lib/ai/model';
 import { extractStatement } from '@/lib/ai/statement-reader';
 import { logger } from '@/lib/logger';
+import { burstLimit } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Please sign in first.' }, { status: 401 });
+  if (burstLimit(`statement:${user.id}`, 6, 10 * 60_000)) {
+    return NextResponse.json({ error: 'Too many statements in a few minutes. Please wait and try again.' }, { status: 429, headers: { 'Retry-After': '600' } });
+  }
   if (!isAiConfigured()) return NextResponse.json({ error: AI_NOT_CONFIGURED_MESSAGE }, { status: 503 });
 
   const form = await req.formData().catch(() => null);

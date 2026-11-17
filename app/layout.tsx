@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Instrument_Serif } from 'next/font/google'
 import { AppShell } from '@/components/shell/app-shell'
 import { PageTransition } from '@/components/omni/page-transition'
+import { SITE_URL } from '@/lib/site'
 import './globals.css'
 
 const geistSans = Geist({
@@ -24,11 +25,18 @@ const instrumentSerif = Instrument_Serif({
   display: 'swap',
 })
 
+const description =
+  'OmniScope helps Indian investors understand their money: verified NSE and AMFI prices, a Risk Lab with an efficient-frontier optimiser, capital-gains tax planning, Monte Carlo goals and an AI Copilot in English and Hindi.'
+
 export const metadata: Metadata = {
-  title: 'OmniScope — Your AI Wealth Operating System',
-  description:
-    'OmniScope helps Indian investors understand their money. Track your portfolio, X-ray hidden risk, measure financial health, and grow with an AI mentor.',
-  generator: 'v0.app',
+  metadataBase: new URL(SITE_URL),
+  title: { default: 'OmniScope — Your AI Wealth Operating System', template: '%s' },
+  description,
+  applicationName: 'OmniScope',
+  keywords: ['personal finance', 'India', 'portfolio', 'mutual funds', 'capital gains tax', 'risk', 'Monte Carlo', 'AI copilot'],
+  openGraph: { type: 'website', siteName: 'OmniScope', title: 'OmniScope — Your AI Wealth Operating System', description, locale: 'en_IN', url: '/welcome' },
+  twitter: { card: 'summary_large_image', title: 'OmniScope — Your AI Wealth Operating System', description },
+  appleWebApp: { capable: true, title: 'OmniScope', statusBarStyle: 'default' },
 }
 
 export const viewport: Viewport = {

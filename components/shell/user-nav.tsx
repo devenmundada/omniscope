@@ -108,6 +108,12 @@ export function UserNav() {
           >
             <ShieldCheck className="size-3.5" /> How OmniScope works
           </Link>
+          <Link
+            href="/privacy"
+            className="text-xs text-muted-foreground hover:text-foreground transition-colors py-1.5 flex items-center gap-2"
+          >
+            <ShieldCheck className="size-3.5" /> Privacy &amp; your data
+          </Link>
           <button
             type="button"
             onClick={handleSignOut}

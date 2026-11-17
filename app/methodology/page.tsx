@@ -75,6 +75,16 @@ const models: Array<{ title: string; formula: string; body: ReactNode }> = [
     body: 'Rules in force since 23 July 2024. Losses are set off in the order that minimises tax (long-term losses only against long-term gains). Holdings turn long-term the day after 12 months (24 for unlisted funds); debt funds bought from April 2023 are always taxed at the slab rate; Gold Bonds redeemed with RBI are exempt.',
   },
   {
+    title: 'Tax-smart rebalancing',
+    formula: 'min  TE(w) = √((w − w*)ᵀ Σ (w − w*))   at least cost  Tax(sales) + 0.1%·turnover;   greedy step: max ΔTE² / Δcost',
+    body: 'A greedy marginal-cost path from today’s mix to an optimiser target: new cash first, then each chunk is sold where it buys the most active-risk reduction per rupee of tax and charges. Sales follow FIFO inside each demat account, the cheapest account is chosen, and tax comes from the same set-off and exemption engine. Compared on a cost-versus-alignment chart with selling oldest units first.',
+  },
+  {
+    title: 'Smart alerts and data checks',
+    formula: 'unrecorded bonus/split if  cost ÷ adjusted close(purchase date) ≈ k,  k ∈ {1.5, 2, 3, 4, 5, 10} (±8%)',
+    body: 'Rules over the same engines: lots turning long-term, the unused ₹1.25 L allowance before 31 March, losses that cancel tax due, holdings above 25%, falls of 20% from the 1-year high, goals under 65% (50% to act), an emergency fund under six months, stale prices, and corporate actions missing from a holding.',
+  },
+  {
     title: 'Crash tests',
     formula: 'rᵢ = aᵢ + βᵢᴺ·r_Nifty + βᵢᴳ·r_Gold + εᵢ   →   Δᵢ = βᵢᴺ·shockᴺ + βᵢᴳ·shockᴳ',
     body: 'Two-factor OLS betas from daily returns translate a market scenario into each holding’s move. Recovery time is ln(1/(1+loss)) / ln(1+μₚ).',
@@ -84,7 +94,7 @@ const models: Array<{ title: string; formula: string; body: ReactNode }> = [
 const limits = [
   'Prices are end-of-day closes, not live quotes.',
   'Sovereign Gold Bonds are valued with a gold reference estimate and use Gold BeES returns as their daily history; the official IBJA rate can differ by a few per cent.',
-  'Mean-variance optimisation is sensitive to expected-return estimates; shrinkage and caps reduce, but do not remove, estimation error. It ignores tax and exit loads.',
+  'Mean-variance optimisation is sensitive to expected-return estimates; shrinkage and caps reduce, but do not remove, estimation error. The frontier itself ignores tax; the rebalancer adds capital-gains tax and charges but not exit loads or STT.',
   'Crash tests are linear: in real panics correlations rise, so losses can be larger.',
   'The AI explains and calculates; it does not give personalised buy or sell advice. OmniScope is not a SEBI-registered adviser.',
 ];
@@ -153,7 +163,7 @@ export default async function MethodologyPage() {
         <SectionTitle title="Models and formulas" subtitle="Implemented from scratch in TypeScript and covered by unit tests against closed-form results." />
         <div className="mt-5 grid gap-3 md:grid-cols-2">
           {models.map((m) => (
-            <Card key={m.title} className="p-5">
+            <Card key={m.title} id={m.title === 'Tax-smart rebalancing' ? 'rebalancer' : undefined} className="scroll-mt-24 p-5">
               <p className="font-semibold">{m.title}</p>
               <p className="mt-3 overflow-x-auto rounded-lg bg-muted/60 px-3 py-2 font-mono text-xs text-foreground">{m.formula}</p>
               <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{m.body}</p>
@@ -166,7 +176,7 @@ export default async function MethodologyPage() {
         <Card className="p-5">
           <SectionTitle title="How the AI is kept honest" />
           <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-muted-foreground">
-            <li>The Copilot answers by calling fourteen tools that read your verified data or run the engines above; it is told never to state a figure a tool can provide.</li>
+            <li>The Copilot answers by calling fourteen tools that read your verified data or run the engines above; it is told never to state a figure a tool can provide. Every tool step can be expanded to show its inputs and the exact result the answer was written from.</li>
             <li>The Statement Reader returns a schema-validated object (Zod), and every extracted holding is matched to the catalogue by ISIN before you confirm it.</li>
             <li>Market summaries cite headline IDs that are checked against the fetched news; IDs never leak into the text.</li>
             <li>Gemini 3.5 Flash-Lite with a 3.1 Flash-Lite fallback, a time budget per model, and no slow retries, so an answer or a clear error always arrives.</li>
@@ -181,6 +191,8 @@ export default async function MethodologyPage() {
             <li>Database access, API keys and AI calls run only on the server (Next.js server components and routes in Mumbai).</li>
             <li>No broker passwords are ever requested: holdings come from your statements or manual entry.</li>
             <li>The scheduled price job is protected by a secret; uploaded statements are processed in memory and not stored.</li>
+            <li>Row-level security on every table, a strict Content Security Policy and security headers, and fair-use limits on AI requests.</li>
+            <li>Data rights under the DPDP Act, 2023: download everything as JSON, or delete the account and all its data in one step. See the <Link href="/privacy" className="text-primary hover:underline">privacy notice</Link>.</li>
           </ul>
         </Card>
       </section>
