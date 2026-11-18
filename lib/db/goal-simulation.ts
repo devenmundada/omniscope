@@ -4,6 +4,7 @@ import type { GoalProjectionDetails } from '@/lib/math/financial-projections';
 import { simulateGoal, blendPortfolioStats, type MonteCarloResult } from '@/lib/math/monte-carlo';
 import type { AssetClassStats } from './performance';
 import { defaultStatsFor } from './performance';
+import { portfolioRiskModel } from './risk';
 
 export interface GoalSimulation {
   nominal: MonteCarloResult;
@@ -29,6 +30,17 @@ export function portfolioAssumptions(holdings: UserHoldingView[], stats: AssetCl
   const blended = blendPortfolioStats(weights);
   const fromHistory = stats.some((s) => s.observations >= 120);
   return { ...blended, source: fromHistory ? ('portfolio-history' as const) : ('portfolio-defaults' as const) };
+}
+
+/**
+ * The return and volatility every module uses to simulate goals: the Risk Lab model of the actual
+ * holdings (shrunk expected returns, Ledoit-Wolf covariance) when there is enough price history,
+ * otherwise asset-class estimates. Goals, the Copilot, alerts and the report all call this, so they
+ * always show the same probability for the same goal.
+ */
+export async function goalAssumptions(userId: string, holdings: UserHoldingView[], stats: AssetClassStats[]) {
+  const riskModel = holdings.length > 0 ? await portfolioRiskModel(userId, holdings).catch(() => null) : null;
+  return riskModel ? { ...riskModel, source: 'risk-model' as const } : portfolioAssumptions(holdings, stats);
 }
 
 export function simulateGoalFromDetails(

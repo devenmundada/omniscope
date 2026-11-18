@@ -2,6 +2,8 @@
 
 import { useSyncExternalStore } from 'react';
 import type { Alert } from '@/lib/math/alerts';
+import { createClient } from '@/lib/supabase/client';
+import { isSupabaseConfigured } from '@/lib/env';
 
 // ---------- dismissed alert ids (localStorage, per browser) ----------
 
@@ -76,30 +78,55 @@ export function primeAlertsFeed(alerts: Alert[]) {
   setFeed({ status: 'ready', alerts, fetchedAt: Date.now() });
 }
 
-/** Fetches alerts unless a fresh copy is already held. */
+const SIGNED_OUT = (): Feed => ({ status: 'signed-out', alerts: [], fetchedAt: Date.now() });
+const isFresh = (f: Feed | null) => Boolean(f && f.status === 'ready' && Date.now() - f.fetchedAt < FEED_TTL_MS);
+let inFlight = false;
+
+/** True when this browser holds a Supabase session. Read from the session cookie, so no request is made. */
+async function hasSession(): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  try {
+    const { data } = await createClient().auth.getSession();
+    return Boolean(data.session);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Fetches alerts unless a fresh copy is already held. Visitors who are not signed in are recognised
+ * locally and never request the feed, and a signed-out browser drops any cached alerts.
+ */
 export function ensureAlertsFeed() {
-  if (feed.status === 'loading' || feed.status === 'signed-out') return;
-  if (feed.status === 'idle') {
-    try {
-      const cached = JSON.parse(window.sessionStorage.getItem(FEED_KEY) ?? 'null') as Feed | null;
-      if (cached && Date.now() - cached.fetchedAt < FEED_TTL_MS) {
-        setFeed(cached);
+  if (inFlight) return;
+  inFlight = true;
+  hasSession()
+    .then(async (signedIn) => {
+      if (!signedIn) {
+        window.sessionStorage.removeItem(FEED_KEY);
+        if (feed.status !== 'signed-out') setFeed(SIGNED_OUT());
         return;
       }
-    } catch {
-      /* ignore a corrupt cache */
-    }
-  }
-  if (feed.status === 'ready' && Date.now() - feed.fetchedAt < FEED_TTL_MS) return;
-  setFeed({ ...feed, status: 'loading' });
-  fetch('/api/alerts', { credentials: 'same-origin' })
-    .then(async (res) => {
-      if (res.status === 401) return setFeed({ status: 'signed-out', alerts: [], fetchedAt: Date.now() });
+      if (feed.status === 'idle' || feed.status === 'signed-out') {
+        try {
+          const cached = JSON.parse(window.sessionStorage.getItem(FEED_KEY) ?? 'null') as Feed | null;
+          if (cached && isFresh(cached)) return setFeed(cached);
+        } catch {
+          /* ignore a corrupt cache */
+        }
+      }
+      if (isFresh(feed)) return;
+      setFeed({ ...feed, status: 'loading' });
+      const res = await fetch('/api/alerts', { credentials: 'same-origin' });
+      if (res.status === 401) return setFeed(SIGNED_OUT());
       if (!res.ok) throw new Error(String(res.status));
       const body = (await res.json()) as { alerts: Alert[] };
       setFeed({ status: 'ready', alerts: body.alerts, fetchedAt: Date.now() });
     })
-    .catch(() => setFeed({ status: 'error', alerts: [], fetchedAt: Date.now() }));
+    .catch(() => setFeed({ status: 'error', alerts: [], fetchedAt: Date.now() }))
+    .finally(() => {
+      inFlight = false;
+    });
 }
 
 export function useAlertsFeed(): Feed {
